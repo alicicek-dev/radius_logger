@@ -1,4 +1,4 @@
-# 📡 Eduroam NPS Loglama Sistemi
+# 📡 Eduroam NPS Loglama Sistemi - Claude ile oluşturuldu
 
 > Windows NPS üzerindeki eduroam RADIUS kimlik doğrulama loglarını otomatik toplayan, SQLite veritabanında saklayan ve HTTP API ile gerçek zamanlı izleyen sistem.
 
