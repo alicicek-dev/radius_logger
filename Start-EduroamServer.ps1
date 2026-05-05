@@ -114,38 +114,31 @@ function Handle-Recent([hashtable]$qs) {
     $defaultSince = (Get-Date).AddDays(-$DaysBack).ToString("yyyy-MM-dd")
 
     if ($qs["from"] -and $qs["from"] -match '^\d{4}-\d{2}-\d{2}$') {
-        $where += " AND TimeCreated >= @from"
-        $params["@from"] = $qs["from"]
+        $where += " AND TimeCreated >= '$($qs['from'])'"
     } else {
         $where += " AND TimeCreated >= '$defaultSince'"
     }
     if ($qs["to"] -and $qs["to"] -match '^\d{4}-\d{2}-\d{2}$') {
-        $where += " AND TimeCreated <= @to"
-        $params["@to"] = $qs["to"] + " 23:59:59"
+        $where += " AND TimeCreated <= '$($qs['to']) 23:59:59'"
     }
     if ($qs["result"] -and $qs["result"] -in @("SUCCESS","FAILURE")) {
-        $where += " AND Result = @result"
-        $params["@result"] = $qs["result"]
+        $where += " AND Result = '$($qs['result'])'"
     }
+    function EscLike([string]$v) { return ($v -replace "'","''" -replace '\\','\\' -replace '%','\%' -replace '_','\_') }
     if ($qs["username"] -and $qs["username"].Length -gt 0) {
-        $where += " AND Username LIKE @uname"
-        $params["@uname"] = "%$($qs['username'])%"
+        $where += " AND Username LIKE '%$(EscLike $qs['username'])%' ESCAPE '\'"
     }
     if ($qs["realm"] -and $qs["realm"].Length -gt 0) {
-        $where += " AND Realm LIKE @realm"
-        $params["@realm"] = "%$($qs['realm'])%"
+        $where += " AND Realm LIKE '%$(EscLike $qs['realm'])%' ESCAPE '\'"
     }
     if ($qs["nas"] -and $qs["nas"].Length -gt 0) {
-        $where += " AND NASIdentifier LIKE @nas"
-        $params["@nas"] = "%$($qs['nas'])%"
+        $where += " AND NASIdentifier LIKE '%$(EscLike $qs['nas'])%' ESCAPE '\'"
     }
     if ($qs["mac"] -and $qs["mac"].Length -gt 0) {
-        $where += " AND CallingStationID LIKE @mac"
-        $params["@mac"] = "%$($qs['mac'])%"
+        $where += " AND CallingStationID LIKE '%$(EscLike $qs['mac'])%' ESCAPE '\'"
     }
     if ($qs["ip"] -and $qs["ip"].Length -gt 0) {
-        $where += " AND ClientIP LIKE @ip"
-        $params["@ip"] = "%$($qs['ip'])%"
+        $where += " AND ClientIP LIKE '%$(EscLike $qs['ip'])%' ESCAPE '\'"
     }
     if ($qs["rc"] -and $qs["rc"] -match '^\d+$') {
         $where += " AND ReasonCode = $([int]$qs['rc'])"
