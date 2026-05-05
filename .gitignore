@@ -1,0 +1,21 @@
+# Veritabanı (hassas veri + büyük dosya)
+*.db
+*.db-wal
+*.db-shm
+
+# Çalışma zamanı dosyaları
+last_run.txt
+*.log
+*.old.log
+
+# Export çıktıları
+dashboard.json
+eduroam_dashboard_live.html
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Üretilen PDF (kaynak HTML zaten var)
+Eduroam_NPS_Sistem_Dokumantasyonu.pdf
