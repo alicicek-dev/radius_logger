@@ -57,8 +57,10 @@ if ($found -eq 0) { Write-Host "Log dosyasi bulunamadi." -ForegroundColor Red; e
 
 # ── State dosyasini geri al ───────────────────────────────────────────────────
 $oldest = (Get-Date).AddDays(-$DaysBack).Date
+$tmp = $StateFile + ".tmp"
 @{ File="IN$($oldest.ToString('yyMMdd')).log"; Timestamp=$oldest.ToString("o") } |
-    ConvertTo-Json | Set-Content $StateFile
+    ConvertTo-Json | Set-Content $tmp -Encoding UTF8
+Move-Item $tmp $StateFile -Force
 Write-Host ""
 Write-Host "State: $($oldest.ToString('yyyy-MM-dd'))" -ForegroundColor Cyan
 
@@ -78,5 +80,5 @@ for ($i = $DaysBack; $i -ge 0; $i--) {
 }
 
 Write-Host ""
-Write-Host "Bitti. Export calistirin:" -ForegroundColor Green
-Write-Host "  pwsh -ExecutionPolicy Bypass -File C:\EduroamLogs\Export-EduroamToJSON.ps1" -ForegroundColor Yellow
+Write-Host "Bitti. Dashboard'u acmak icin sunucunun calistiginden emin olun:" -ForegroundColor Green
+Write-Host "  Start-Process 'http://127.0.0.1:8080'" -ForegroundColor Yellow

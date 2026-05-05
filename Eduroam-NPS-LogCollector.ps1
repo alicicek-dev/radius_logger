@@ -29,7 +29,7 @@ function Write-Log { param([string]$M,[string]$L="INFO")
         $sw = [System.IO.StreamWriter]::new($fs)
         $sw.WriteLine("[$(Get-Date -f 'yyyy-MM-dd HH:mm:ss')][$L] $M")
         $sw.Close(); $fs.Close()
-    } catch {}
+    } catch { Write-Host "[LOG-HATA] $($_.Exception.Message)" -ForegroundColor DarkRed }
 }
 
 function Get-LastState {
@@ -146,7 +146,7 @@ function Upsert-Device {
     $devCmd.Parameters.AddWithValue("@ts",     $D.Timestamp.ToString("yyyy-MM-dd HH:mm:ss"))           | Out-Null
     $devCmd.Parameters.AddWithValue("@user",   $D.Username ?? "")                                       | Out-Null
     $devCmd.Parameters.AddWithValue("@result", $D.Result)                                               | Out-Null
-    try { $devCmd.ExecuteNonQuery() | Out-Null } catch {}
+    try { $devCmd.ExecuteNonQuery() | Out-Null } catch { Write-Log "Upsert-Device: $($_.Exception.Message)" "WARN" }
 }
 
 # ── ANA AKIS ─────────────────────────────────────────────────────────────────
@@ -169,6 +169,11 @@ $pragmaCmd.CommandText = "PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;"
 $pragmaCmd.ExecuteNonQuery() | Out-Null
 $authCmd = $dbConn.CreateCommand(); $authCmd.CommandText = $insertSQL
 $devCmd  = $dbConn.CreateCommand(); $devCmd.CommandText  = $upsertDevSQL
+
+$pruneCmd = $dbConn.CreateCommand()
+$pruneCmd.CommandText = "DELETE FROM AuthLog WHERE TimeCreated < date('now','-180 days')"
+$pruned = $pruneCmd.ExecuteNonQuery()
+if ($pruned -gt 0) { Write-Log "180 gunden eski $pruned kayit silindi." "INFO" }
 
 $totalInserted = 0
 $lastTs        = $sinceTs
@@ -216,7 +221,7 @@ foreach ($file in $files) {
                 }
             }
             if ($null -eq $ts) { continue }
-            if ($ts -le $sinceTs -and $file.Name -eq $sinceFile) { continue }
+            if ($ts -lt $sinceTs -and $file.Name -eq $sinceFile) { continue }
 
             $clientIP = $f['Client-IP-Address']
             $nasIP    = $f['NAS-IP-Address']

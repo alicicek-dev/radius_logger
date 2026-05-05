@@ -6,276 +6,6 @@
 <title>Eduroam NPS Dashboard — Kastamonu Üniversitesi</title>
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/style.css">
-<style>/*
-  border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; justify-content: space-between;
-  background: rgba(33,31,38,.97);
-  backdrop-filter: blur(16px);
-  position: sticky; top: 0; z-index: 100;
-}
-.logo { display: flex; align-items: center; gap: .75rem; }
-.logo-dot {
-  width: 10px; height: 10px; border-radius: 50%;
-  background: var(--accent); box-shadow: 0 0 10px var(--accent);
-  animation: pulse 2.5s ease-in-out infinite;
-}
-@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.85)} }
-/* MD3 Title Large */
-.logo-text { font-size: 1.05rem; font-weight: 700; letter-spacing: .01em; }
-.logo-text span { color: var(--accent); }
-/* MD3 Label Small */
-.logo-sub { font-size: .72rem; color: var(--muted); font-weight: 400; margin-top: 1px; letter-spacing: .03em; }
-#lastUpdate { font-family: var(--mono); font-size: .72rem; color: var(--muted); letter-spacing: .03em; }
-.header-actions { display: flex; align-items: center; gap: .5rem; }
-/* MD3 Outlined Button */
-.btn {
-  background: transparent; border: 1px solid var(--accent); color: var(--accent);
-  padding: .5rem 1.1rem; border-radius: var(--shape-full); cursor: pointer;
-  font-family: var(--sans); font-size: .8rem; font-weight: 500;
-  letter-spacing: .03em; transition: background .2s, box-shadow .2s;
-  position: relative; overflow: hidden;
-}
-.btn::after { content: ''; position: absolute; inset: 0; border-radius: inherit; background: transparent; transition: background .2s; }
-.btn:hover::after { background: var(--state-hover); }
-.btn:hover { box-shadow: var(--elev-1); }
-/* MD3 Text Button (ghost) */
-.btn-ghost { border-color: var(--outline); color: var(--muted); }
-.btn-ghost:hover::after { background: rgba(202,196,208,.08); }
-.btn-ghost:hover { box-shadow: none; }
-
-/* ── MD3 Navigation Tabs ──────────────────────────────────────────────────── */
-.tab-bar {
-  background: rgba(33,31,38,.97); backdrop-filter: blur(16px);
-  border-bottom: 1px solid var(--border);
-  display: flex; padding: 0 1.5rem;
-  position: sticky; top: 57px; z-index: 99;
-}
-.tab-btn {
-  padding: .875rem 1.25rem; cursor: pointer;
-  /* MD3 Label Large */
-  font-size: .875rem; font-weight: 500; letter-spacing: .006em;
-  color: var(--muted); border: none; border-bottom: 2px solid transparent;
-  transition: color .2s, border-color .2s; background: none;
-  font-family: var(--sans); white-space: nowrap;
-  position: relative;
-}
-.tab-btn::after { content: ''; position: absolute; inset: 0; background: transparent; transition: background .2s; }
-.tab-btn:hover::after { background: rgba(202,196,208,.06); }
-.tab-btn:hover { color: var(--text); }
-.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
-.tab-content { display: none; }
-.tab-content.active { display: block; }
-
-main { padding: 1.5rem; max-width: 1700px; margin: 0 auto; }
-
-/* MD3 Label Medium section title */
-.section-title {
-  font-size: .75rem; font-weight: 500; letter-spacing: .06em;
-  text-transform: uppercase; color: var(--muted); margin-bottom: .9rem;
-  display: flex; align-items: center; gap: .5rem;
-}
-.section-title::before {
-  content: ''; display: block; width: 3px; height: 1em;
-  background: var(--accent); border-radius: var(--shape-xs);
-}
-
-/* ── MD3 Cards (Filled) ───────────────────────────────────────────────────── */
-.stats-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: .875rem; margin-bottom: 1.5rem; }
-.stat-card {
-  background: var(--bg2); border-radius: var(--shape-lg);
-  padding: 1rem 1.25rem; position: relative; overflow: hidden;
-  transition: box-shadow .2s; box-shadow: var(--elev-1);
-  border: none;
-}
-.stat-card:hover { box-shadow: var(--elev-2); }
-.stat-card::after { content: ''; position: absolute; inset: 0; border-radius: inherit; background: transparent; transition: background .2s; pointer-events: none; }
-.stat-card:hover::after { background: var(--state-hover); }
-/* MD3 tonal top indicator */
-.stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: var(--shape-lg) var(--shape-lg) 0 0; }
-.stat-card.c-blue::before   { background: var(--accent); }
-.stat-card.c-green::before  { background: var(--green); }
-.stat-card.c-red::before    { background: var(--red); }
-.stat-card.c-yellow::before { background: var(--yellow); }
-.stat-card.c-purple::before { background: var(--purple); }
-.stat-card.c-orange::before { background: var(--orange); }
-/* MD3 Label Small */
-.stat-label { font-size: .72rem; font-weight: 500; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; margin-bottom: .4rem; }
-/* MD3 Display Small (numbers) */
-.stat-value { font-family: var(--mono); font-size: 1.65rem; font-weight: 700; line-height: 1; letter-spacing: -.01em; }
-.stat-value.c-blue   { color: var(--accent); }
-.stat-value.c-green  { color: var(--green); }
-.stat-value.c-red    { color: var(--red); }
-.stat-value.c-yellow { color: var(--yellow); }
-.stat-value.c-purple { color: var(--purple); }
-.stat-value.c-orange { color: var(--orange); }
-/* MD3 Body Small */
-.stat-sub { font-size: .72rem; color: var(--muted); margin-top: .35rem; font-family: var(--mono); letter-spacing: .03em; }
-
-/* MD3 Card (Elevated) */
-.card { background: var(--bg2); border-radius: var(--shape-lg); padding: 1.25rem; box-shadow: var(--elev-1); border: none; }
-.two-col   { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
-.three-col { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
-.four-col  { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
-
-canvas { display: block; }
-#trendChart  { width: 100%; height: 145px; }
-#hourlyChart { width: 100%; height: 115px; }
-
-.bar-chart { display: flex; flex-direction: column; gap: 7px; }
-.bar-row { display: flex; align-items: center; gap: 8px; }
-.bar-label { font-family: var(--mono); font-size: .65rem; color: var(--muted); width: 130px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: .02em; }
-.bar-track { flex: 1; height: 8px; background: var(--bg3); border-radius: var(--shape-full); overflow: hidden; }
-.bar-fill { height: 100%; border-radius: var(--shape-full); transition: width .6s cubic-bezier(.4,0,.2,1); }
-.bar-val { font-family: var(--mono); font-size: .65rem; color: var(--muted); width: 52px; text-align: right; flex-shrink: 0; }
-
-/* ── MD3 Text Fields (Filled) ─────────────────────────────────────────────── */
-.filter-bar {
-  background: var(--bg2); border-radius: var(--shape-lg); border: none;
-  padding: 1rem 1.25rem; margin-bottom: .9rem;
-  display: flex; flex-wrap: wrap; gap: .65rem; align-items: flex-end;
-  box-shadow: var(--elev-1);
-}
-.filter-group { display: flex; flex-direction: column; gap: .3rem; }
-/* MD3 Label Small */
-.filter-group label { font-size: .72rem; font-weight: 500; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
-.filter-group input, .filter-group select {
-  background: var(--bg3); border: none; border-bottom: 2px solid var(--outline);
-  color: var(--text); padding: .45rem .75rem;
-  border-radius: var(--shape-sm) var(--shape-sm) 0 0;
-  font-family: var(--mono); font-size: .8rem; font-weight: 400;
-  outline: none; transition: border-color .15s, background .15s; letter-spacing: .02em;
-}
-.filter-group input:hover, .filter-group select:hover { background: rgba(202,196,208,.05); }
-.filter-group input:focus, .filter-group select:focus {
-  border-bottom-color: var(--accent);
-  background: rgba(208,188,255,.05);
-}
-.filter-group input { width: 150px; }
-.filter-group select { width: 160px; }
-/* MD3 Outlined Button */
-#clearBtn {
-  background: transparent; border: 1px solid var(--outline); color: var(--on-surface-variant, var(--muted));
-  padding: .5rem 1rem; border-radius: var(--shape-full); cursor: pointer;
-  font-family: var(--sans); font-size: .8rem; font-weight: 500;
-  letter-spacing: .03em; transition: all .2s; align-self: flex-end;
-}
-#clearBtn:hover { border-color: var(--red); color: var(--red); background: rgba(255,180,171,.08); }
-#recordCount { font-family: var(--mono); font-size: .78rem; color: var(--text); align-self: flex-end; margin-left: auto; font-weight: 500; letter-spacing: .02em; }
-.filter-sep { width: 1px; background: var(--border); align-self: stretch; margin: .2rem 0; }
-.filter-group input[type="date"] { width: 144px; color-scheme: dark; }
-
-/* ── MD3 Data Table ───────────────────────────────────────────────────────── */
-.table-wrap { overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: .78rem; }
-thead { position: sticky; top: 0; z-index: 10; }
-thead tr { background: var(--bg3); border-bottom: 1px solid var(--border); }
-th {
-  padding: .8rem .9rem; text-align: left;
-  /* MD3 Label Small */
-  color: var(--muted); font-family: var(--sans); font-weight: 500;
-  font-size: .72rem; letter-spacing: .06em; text-transform: uppercase;
-  white-space: nowrap; cursor: pointer; user-select: none;
-  transition: color .15s;
-}
-th:hover { color: var(--accent); }
-td {
-  padding: .65rem .9rem;
-  border-bottom: 1px solid rgba(73,69,79,.35);
-  white-space: nowrap; max-width: 200px;
-  overflow: hidden; text-overflow: ellipsis;
-  /* MD3 Body Small */
-  font-size: .78rem; letter-spacing: .02em;
-}
-tbody tr:nth-child(even) { background: rgba(43,41,48,.4); }
-tbody tr:hover td { background: var(--state-hover) !important; }
-/* MD3 tonal row indicators */
-tbody tr.row-SUCCESS   td:first-child { border-left: 3px solid var(--green);  background: rgba(109,213,140,.04); }
-tbody tr.row-FAILURE   td:first-child { border-left: 3px solid var(--red);    background: rgba(255,180,171,.04); }
-tbody tr.row-CHALLENGE td:first-child { border-left: 3px solid var(--purple); }
-tbody tr.row-REQUEST   td:first-child { border-left: 3px solid var(--accent); }
-
-/* ── MD3 Assist Chips (badges) ────────────────────────────────────────────── */
-.badge {
-  display: inline-flex; align-items: center;
-  padding: .22rem .65rem; border-radius: var(--shape-full);
-  font-size: .72rem; font-weight: 500; letter-spacing: .03em;
-  gap: .25rem; font-family: var(--sans);
-}
-.badge-SUCCESS   { background: rgba(109,213,140,.15); color: var(--green);  border: 1px solid rgba(109,213,140,.4); }
-.badge-FAILURE   { background: rgba(255,180,171,.15); color: var(--red);    border: 1px solid rgba(255,180,171,.4); }
-.badge-CHALLENGE { background: rgba(239,184,200,.15); color: var(--purple); border: 1px solid rgba(239,184,200,.4); }
-.badge-REQUEST   { background: rgba(208,188,255,.12); color: var(--accent); border: 1px solid rgba(208,188,255,.35); }
-.badge-6272 { background: rgba(109,213,140,.1);  color: var(--green); }
-.badge-6273 { background: rgba(255,180,171,.1);  color: var(--red); }
-.badge-6274 { background: rgba(255,183,77,.1);   color: var(--yellow); }
-.badge-6275 { background: rgba(255,183,77,.08);  color: var(--yellow); }
-.badge-6276 { background: rgba(255,186,121,.1);  color: var(--orange); }
-.badge-6277 { background: rgba(239,184,200,.1);  color: var(--purple); }
-.badge-6278 { background: rgba(109,213,140,.08); color: var(--green); }
-.badge-6279 { background: rgba(255,180,171,.15); color: var(--red); }
-.badge-6280 { background: rgba(208,188,255,.08); color: var(--accent); }
-
-/* ── MD3 Pagination ───────────────────────────────────────────────────────── */
-#pagination { display: flex; gap: .35rem; justify-content: center; padding: .9rem 0; flex-wrap: wrap; }
-#pagination button {
-  background: transparent; border: 1px solid var(--outline); color: var(--muted);
-  padding: .3rem .7rem; border-radius: var(--shape-full); cursor: pointer;
-  font-family: var(--mono); font-size: .72rem; letter-spacing: .02em; transition: all .15s;
-}
-#pagination button.active { background: var(--primary-ctr); border-color: var(--primary-ctr); color: var(--on-primary-ctr); }
-#pagination button:hover  { background: var(--state-hover); border-color: var(--accent); color: var(--accent); }
-
-/* ── MD3 Loading / Progress Linear ───────────────────────────────────────── */
-#loadingMsg {
-  display:flex; flex-direction:column; align-items:center;
-  justify-content:center; min-height:60vh; gap:1.5rem; font-family:var(--sans);
-}
-/* MD3 Title Medium */
-#loadingMsg .ld-title { font-size:1rem; font-weight:500; color:var(--text); letter-spacing:.01em; }
-/* MD3 Body Small */
-#loadingMsg .ld-step  { font-size:.78rem; color:var(--muted); min-height:1.2em; font-family:var(--mono); letter-spacing:.03em; }
-.progress-wrap { width:360px; background:var(--bg3); border-radius:var(--shape-full); overflow:hidden; height:4px; }
-.progress-bar  { height:100%; width:0%; background:var(--accent); border-radius:var(--shape-full); transition:width .3s cubic-bezier(.4,0,.2,1); }
-.progress-pct  { font-size:.9rem; color:var(--accent); font-family:var(--mono); font-weight:500; letter-spacing:.03em; }
-#errorMsg   { text-align:center; padding:2rem; color:var(--red); font-family:var(--mono); display:none; line-height:2; letter-spacing:.02em; }
-#dashboard  { display: none; }
-
-/* ── MD3 Suggestion Chips (reason-pill) ──────────────────────────────────── */
-.reason-pill {
-  display: inline-block; padding: .12rem .48rem;
-  border-radius: var(--shape-full); font-size: .65rem; font-weight: 500;
-  letter-spacing: .03em; background: rgba(147,143,153,.15);
-  color: var(--muted); white-space: nowrap; font-family: var(--mono);
-}
-.reason-pill.rc-ok   { background: rgba(109,213,140,.14); color: var(--green); }
-.reason-pill.rc-warn { background: rgba(255,183,77,.14);  color: var(--yellow); }
-.reason-pill.rc-err  { background: rgba(255,180,171,.14); color: var(--red); }
-.reason-pill.rc-lock { background: rgba(255,186,121,.14); color: var(--orange); }
-
-/* ── MD3 Reference Table ──────────────────────────────────────────────────── */
-.ref-table { width: 100%; border-collapse: collapse; font-size: .78rem; }
-.ref-table th {
-  padding: .6rem .9rem; text-align: left; color: var(--muted);
-  font-size: .72rem; text-transform: uppercase; letter-spacing: .06em;
-  border-bottom: 1px solid var(--border);
-  font-family: var(--sans); font-weight: 500;
-}
-.ref-table td { padding: .6rem .9rem; border-bottom: 1px solid rgba(73,69,79,.35); vertical-align: top; line-height: 1.6; }
-.ref-table td:first-child { font-family: var(--mono); font-weight: 500; white-space: nowrap; }
-.ref-table td:nth-child(2) { font-family: var(--mono); font-size: .7rem; color: var(--yellow); white-space: nowrap; letter-spacing: .02em; }
-.ref-table tr:hover td { background: var(--state-hover); }
-.ref-table tr td:first-child { border-left: 3px solid transparent; padding-left: .75rem; }
-.ref-table tr.cat-ok   td:first-child { border-left-color: var(--green); }
-.ref-table tr.cat-warn td:first-child { border-left-color: var(--yellow); }
-.ref-table tr.cat-err  td:first-child { border-left-color: var(--red); }
-.ref-table tr.cat-lock td:first-child { border-left-color: var(--orange); }
-
-.ri-row { display: flex; align-items: center; gap: .5rem; font-size: .78rem; margin-bottom: .5rem; }
-.ri-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-.ri-label { color: var(--muted); flex: 1; }
-.ri-val { font-family: var(--mono); color: var(--text); }
-*/
-</style>
 </head>
 <body>
 
@@ -1002,7 +732,7 @@ function renderReference(){
   // Reason Codes
   document.getElementById('reasonCodeBody').innerHTML=NPS_REASON_CODES.map(r=>{
     const catColor={ok:'var(--green)',warn:'var(--yellow)',err:'var(--red)',lock:'var(--orange)'}[r.cat]||'var(--muted)';
-    return `<tr class="cat-${r.cat||''}"
+    return `<tr class="cat-${r.cat||''}">
       <td><span class="reason-pill rc-${r.cat}">${r.code}</span></td>
       <td style="color:var(--yellow);font-size:.66rem">${r.cn}</td>
       <td>${r.tr}</td>
@@ -1113,6 +843,8 @@ function applyFilters(){
 
 const RESULT_ICON = { SUCCESS:'✓', FAILURE:'✗', CHALLENGE:'⟳', REQUEST:'→' };
 
+function esc(s) { const d=document.createElement('div'); d.textContent=s||''; return d.innerHTML; }
+
 function renderTableRows(rows){
   if(!rows||!rows.length){
     document.getElementById('logTable').innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:1.5rem">Kayıt bulunamadı</td></tr>';
@@ -1127,16 +859,16 @@ function renderTableRows(rows){
     const zamanStr = formatZaman(r.Zaman||'');
     const emptyUser = `<span style="color:var(--muted)">—</span>`;
     const emptyNAS  = `<span style="color:var(--muted)">—</span>`;
-    return `<tr class="row-${r.Result||''}">
-      <td style="color:var(--muted);font-size:.72rem;white-space:nowrap" title="${r.Zaman||''}">${zamanStr}</td>
-      <td style="font-weight:600;color:var(--text)" title="${r.Username||''}">${r.Username||emptyUser}</td>
-      <td style="color:var(--purple)">${r.Realm||emptyUser}</td>
-      <td style="color:var(--muted)">${r.ClientIP||'—'}</td>
-      <td title="${r.NASIdentifier||''}" style="color:var(--accent)">${r.NASIdentifier||emptyNAS}</td>
-      <td style="color:var(--muted);font-size:.7rem" title="${r.CallingStationID||''}">${r.CallingStationID||'—'}</td>
-      <td><span class="badge badge-${r.Result||''}">${icon} ${r.Result||''}</span></td>
+    return `<tr class="row-${esc(r.Result||'')}">
+      <td style="color:var(--muted);font-size:.72rem;white-space:nowrap" title="${esc(r.Zaman||'')}">${zamanStr}</td>
+      <td style="font-weight:600;color:var(--text)" title="${esc(r.Username||'')}">${r.Username?esc(r.Username):emptyUser}</td>
+      <td style="color:var(--purple)">${r.Realm?esc(r.Realm):emptyUser}</td>
+      <td style="color:var(--muted)">${esc(r.ClientIP||'—')}</td>
+      <td title="${esc(r.NASIdentifier||'')}" style="color:var(--accent)">${r.NASIdentifier?esc(r.NASIdentifier):emptyNAS}</td>
+      <td style="color:var(--muted);font-size:.7rem" title="${esc(r.CallingStationID||'')}">${esc(r.CallingStationID||'—')}</td>
+      <td><span class="badge badge-${esc(r.Result||'')}">${icon} ${esc(r.Result||'')}</span></td>
       <td><span class="reason-pill ${cls}">${rc}</span></td>
-      <td title="${info.action}" style="color:${catColor};font-size:.72rem;max-width:220px;white-space:normal;line-height:1.3">${info.tr}</td>
+      <td title="${esc(info.action)}" style="color:${catColor};font-size:.72rem;max-width:220px;white-space:normal;line-height:1.3">${esc(info.tr)}</td>
     </tr>`;
   }).join('');
 }

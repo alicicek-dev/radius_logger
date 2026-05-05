@@ -3,8 +3,8 @@
 # Kolektoer her 10 dk calisir, bittikten sonra export'u kendisi tetikler.
 # Ayri bir export gorevi GEREKMEZ.
 
-$pwsh = (Get-Command pwsh).Source
-if (-not $pwsh) { Write-Host "pwsh bulunamadi." -ForegroundColor Red; exit 1 }
+$pwsh = (Get-Command pwsh -ErrorAction SilentlyContinue)?.Source
+if (-not $pwsh) { Write-Host "pwsh bulunamadi. winget install Microsoft.PowerShell" -ForegroundColor Red; exit 1 }
 Write-Host "PS7 yolu: $pwsh" -ForegroundColor DarkGray
 
 $action = New-ScheduledTaskAction `
