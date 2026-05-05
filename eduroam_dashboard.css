@@ -48,6 +48,7 @@
   --chart-bg:      #2B2930;
   /* Header bg */
   --header-bg: rgba(33,31,38,.97);
+  color-scheme: dark;
 }
 
 /* ── MD3 Light Theme ─────────────────────────────────────────────────────── */
@@ -82,6 +83,7 @@
   --chart-label:   #79747E;
   --chart-bg:      #ECE6F0;
   --header-bg: rgba(243,239,244,.97);
+  color-scheme: light;
 }
 
 /* ── Tema geçiş animasyonu ───────────────────────────────────────────────── */
@@ -237,6 +239,7 @@ canvas { display: block; }
 }
 .filter-group input:hover, .filter-group select:hover { background: var(--surface-high); }
 .filter-group input:focus, .filter-group select:focus { border-bottom-color: var(--accent); background: var(--surface-high); }
+.filter-group select option { background: var(--bg3); color: var(--text); }
 .filter-group input { width: 150px; }
 .filter-group select { width: 160px; }
 .filter-group input[type="date"] { width: 144px; color-scheme: light dark; }
