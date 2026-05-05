@@ -111,12 +111,13 @@ function Handle-Recent([hashtable]$qs) {
     $where  = "Result IN ('SUCCESS','FAILURE')"
     $params = @{}
 
-    $since = (Get-Date).AddDays(-$DaysBack).ToString("yyyy-MM-dd")
-    $where += " AND TimeCreated >= '$since'"
+    $defaultSince = (Get-Date).AddDays(-$DaysBack).ToString("yyyy-MM-dd")
 
     if ($qs["from"] -and $qs["from"] -match '^\d{4}-\d{2}-\d{2}$') {
         $where += " AND TimeCreated >= @from"
         $params["@from"] = $qs["from"]
+    } else {
+        $where += " AND TimeCreated >= '$defaultSince'"
     }
     if ($qs["to"] -and $qs["to"] -match '^\d{4}-\d{2}-\d{2}$') {
         $where += " AND TimeCreated <= @to"
@@ -126,22 +127,25 @@ function Handle-Recent([hashtable]$qs) {
         $where += " AND Result = @result"
         $params["@result"] = $qs["result"]
     }
-    function EscLike([string]$v) { return ($v -replace "'","''") }
-
     if ($qs["username"] -and $qs["username"].Length -gt 0) {
-        $where += " AND Username LIKE '%$(EscLike $qs['username'])%'"
+        $where += " AND Username LIKE @uname"
+        $params["@uname"] = "%$($qs['username'])%"
     }
     if ($qs["realm"] -and $qs["realm"].Length -gt 0) {
-        $where += " AND Realm LIKE '%$(EscLike $qs['realm'])%'"
+        $where += " AND Realm LIKE @realm"
+        $params["@realm"] = "%$($qs['realm'])%"
     }
     if ($qs["nas"] -and $qs["nas"].Length -gt 0) {
-        $where += " AND NASIdentifier LIKE '%$(EscLike $qs['nas'])%'"
+        $where += " AND NASIdentifier LIKE @nas"
+        $params["@nas"] = "%$($qs['nas'])%"
     }
     if ($qs["mac"] -and $qs["mac"].Length -gt 0) {
-        $where += " AND CallingStationID LIKE '%$(EscLike $qs['mac'])%'"
+        $where += " AND CallingStationID LIKE @mac"
+        $params["@mac"] = "%$($qs['mac'])%"
     }
     if ($qs["ip"] -and $qs["ip"].Length -gt 0) {
-        $where += " AND ClientIP LIKE '%$(EscLike $qs['ip'])%'"
+        $where += " AND ClientIP LIKE @ip"
+        $params["@ip"] = "%$($qs['ip'])%"
     }
     if ($qs["rc"] -and $qs["rc"] -match '^\d+$') {
         $where += " AND ReasonCode = $([int]$qs['rc'])"
