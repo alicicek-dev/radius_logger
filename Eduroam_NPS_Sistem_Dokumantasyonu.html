@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Eduroam NPS Loglama Sistemi — Teknik Dokümantasyon</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap');
+:root {
+  --primary:#6750A4; --primary-dark:#4F378B; --surface:#F3EFF4;
+  --text:#1C1B1F; --muted:#49454F; --border:#CAC4D0;
+  --green:#146C2E; --red:#B3261E; --yellow:#795900; --orange:#6D3600;
+  --accent:#ECE6F0;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Roboto',Arial,sans-serif;font-size:10.5pt;color:var(--text);background:#fff;line-height:1.6}
+.page{max-width:210mm;margin:0 auto;padding:20mm 18mm}
+
+/* Typography */
+h1{font-size:20pt;color:var(--primary);font-weight:700;margin:28px 0 6px;padding-bottom:6px;border-bottom:2px solid var(--primary)}
+h2{font-size:14pt;color:var(--primary-dark);font-weight:600;margin:20px 0 6px}
+h3{font-size:11pt;color:var(--text);font-weight:600;margin:14px 0 4px}
+p{margin-bottom:8px;text-align:justify}
+code{font-family:'Roboto Mono',monospace;font-size:8.5pt;background:var(--surface);padding:1px 5px;border-radius:3px;color:var(--primary-dark)}
+.mono{font-family:'Roboto Mono',monospace;font-size:8.5pt}
+
+/* Cover */
+.cover{text-align:center;padding:40px 0 30px}
+.cover h1{font-size:28pt;border:none;margin-bottom:4px}
+.cover .subtitle{font-size:13pt;color:var(--muted);margin-bottom:30px}
+.cover-accent{color:var(--primary)}
+.cover-table{width:100%;border-collapse:collapse;margin:0 auto;max-width:500px}
+.cover-table td{padding:9px 14px;font-size:10pt;border-bottom:1px solid var(--border)}
+.cover-table td:first-child{font-weight:600;color:var(--primary);width:140px}
+.cover-table tr:nth-child(even) td{background:var(--surface)}
+
+/* Tables */
+table{width:100%;border-collapse:collapse;margin:10px 0 16px;font-size:9.5pt}
+thead tr{background:var(--primary);color:#fff}
+th{padding:8px 10px;text-align:left;font-weight:600;font-size:9pt}
+td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+tr:nth-child(even) td{background:var(--surface)}
+.code-cell{font-family:'Roboto Mono',monospace;font-size:8pt;color:var(--primary-dark)}
+
+/* Info boxes */
+.box{border-left:4px solid var(--primary);background:var(--surface);padding:12px 16px;margin:12px 0;border-radius:0 6px 6px 0}
+.box-warn{border-left-color:var(--red);background:#FFF3F2}
+.box-note{border-left-color:var(--yellow);background:#FFFCE6}
+.box-ok{border-left-color:var(--green);background:#F0FAF3}
+.box p{margin-bottom:4px;font-size:9.5pt}
+.box p:last-child{margin-bottom:0}
+
+/* Section markers */
+.section-num{display:inline-block;background:var(--primary);color:#fff;border-radius:50%;width:24px;height:24px;text-align:center;line-height:24px;font-size:11pt;font-weight:700;margin-right:8px;vertical-align:middle}
+
+/* HR */
+hr{border:none;border-top:1px solid var(--border);margin:16px 0}
+.hr-accent{border-top:2px solid var(--primary)}
+
+/* Footer / Header */
+.doc-header{display:flex;justify-content:space-between;align-items:center;padding-bottom:8px;border-bottom:1px solid var(--border);margin-bottom:20px;color:var(--muted);font-size:8.5pt}
+.doc-footer{margin-top:30px;padding-top:8px;border-top:1px solid var(--border);display:flex;justify-content:space-between;color:var(--muted);font-size:8.5pt}
+
+/* Version badge */
+.badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:8pt;font-weight:600;margin-left:6px}
+.badge-v4{background:var(--primary);color:#fff}
+.badge-ok{background:var(--green);color:#fff}
+.badge-warn{background:var(--red);color:#fff}
+
+/* Print */
+@media print{
+  body{font-size:9.5pt}
+  .page{padding:15mm 14mm;max-width:none}
+  .page-break{page-break-before:always}
+  h1{page-break-before:auto}
+  .no-break{page-break-inside:avoid}
+  a{text-decoration:none;color:inherit}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- KAPAK -->
+<div class="cover">
+  <div style="font-size:10pt;color:var(--muted);margin-bottom:10px">KASTAMONUÜNİVERSİTESİ — BİLGİ İŞLEM DAİRE BAŞKANLIĞI</div>
+  <h1><span class="cover-accent">EDU</span>ROAM NPS<br>LOGLAMA SİSTEMİ</h1>
+  <div class="subtitle">Teknik Proje Dokümantasyonu <span class="badge badge-v4">v4.0</span></div>
+  <hr class="hr-accent">
+  <table class="cover-table">
+    <tr><td>Kurum</td><td>Kastamonu Üniversitesi — Bilgi İşlem Daire Başkanlığı</td></tr>
+    <tr><td>Sistem</td><td>Eduroam NPS RADIUS Kimlik Doğrulama İzleme Sistemi</td></tr>
+    <tr><td>Platform</td><td>Windows Server / PowerShell 7 / SQLite / HTTP API</td></tr>
+    <tr><td>Versiyon</td><td>v4.0 (SQLite + HTTP API + Material Design 3)</td></tr>
+    <tr><td>Tarih</td><td id="docDate"></td></tr>
+  </table>
+</div>
+
+<div class="page-break"></div>
+
+<!-- İÇİNDEKİLER -->
+<div class="doc-header"><span>Eduroam NPS Loglama Sistemi — Teknik Dokümantasyon</span><span>v4.0</span></div>
+<h1>İçindekiler</h1>
+<table style="width:100%">
+  <tr><td style="width:40px;color:var(--primary);font-weight:600">1.</td><td>Yönetici Özeti</td></tr>
+  <tr><td style="color:var(--primary);font-weight:600">2.</td><td>Sistem Mimarisi</td></tr>
+  <tr><td style="color:var(--primary);font-weight:600">3.</td><td>Dosya Yapısı ve Açıklamaları</td></tr>
+  <tr><td style="color:var(--primary);font-weight:600">4.</td><td>Veritabanı Şeması</td></tr>
+  <tr><td style="color:var(--primary);font-weight:600">5.</td><td>HTTP API Endpoint Referansı</td></tr>
+  <tr><td style="color:var(--primary);font-weight:600">6.</td><td>Zamanlanmış Görevler</td></tr>
+  <tr><td style="color:var(--primary);font-weight:600">7.</td><td>Kurulum Gereksinimleri ve Adımları</td></tr>
+  <tr><td style="color:var(--primary);font-weight:600">8.</td><td>Dashboard Kullanımı</td></tr>
+  <tr><td style="color:var(--primary);font-weight:600">9.</td><td>Güvenlik Notları</td></tr>
+  <tr><td style="color:var(--primary);font-weight:600">10.</td><td>Bilinen Kısıtlamalar</td></tr>
+  <tr><td style="color:var(--primary);font-weight:600">11.</td><td>Rutin Bakım</td></tr>
+  <tr><td style="color:var(--primary);font-weight:600">12.</td><td>Sorun Giderme Rehberi</td></tr>
+  <tr><td style="color:var(--primary);font-weight:600">13.</td><td>Sürüm Geçmişi</td></tr>
+</table>
+
+<div class="page-break"></div>
+
+<!-- 1. YÖNETİCİ ÖZETİ -->
+<div class="doc-header"><span>Eduroam NPS Loglama Sistemi — Teknik Dokümantasyon</span><span>v4.0</span></div>
+<h1><span class="section-num">1</span>Yönetici Özeti</h1>
+<p>Bu proje, Kastamonu Üniversitesi'nin eduroam kablosuz ağ altyapısında kullanılan Windows NPS (Network Policy Server) üzerindeki RADIUS kimlik doğrulama loglarını otomatik olarak toplayıp analiz eden, SQLite tabanlı bir veritabanında saklayan ve web tabanlı bir HTTP API aracılığıyla gerçek zamanlı görselleştiren bir izleme sistemidir.</p>
+<p>Sistem; başarılı ve başarısız giriş denemelerini, kullanıcı/cihaz bazlı istatistikleri, kurum dağılımını, erişim noktası (AP) yoğunluklarını ve hata nedenlerini anlık olarak takip etmeyi mümkün kılmaktadır. Yöneticilere kullanıcı sorunlarını hızlıca teşhis etme, sistem anomalilerini tespit etme ve eduroam federasyon trafiğini izleme imkânı sunar.</p>
+
+<h3>Temel Metrikler</h3>
+<table>
+  <thead><tr><th>Metrik</th><th>Değer</th></tr></thead>
+  <tbody>
+    <tr><td>İşlenen Toplam Kayıt</td><td>880.000+ (Access'ten SQLite'a aktarıldı)</td></tr>
+    <tr><td>Günlük Yeni Kayıt</td><td>~15.000 / gün</td></tr>
+    <tr><td>Kolektör Hızı</td><td>~260 kayıt / saniye (batch transaction)</td></tr>
+    <tr><td>Güncelleme Sıklığı</td><td>Her 10 dakikada otomatik</td></tr>
+    <tr><td>Dashboard Erişimi</td><td>http://127.0.0.1:8080 (localhost)</td></tr>
+    <tr><td>Veritabanı Boyutu</td><td>~280 MB (SQLite, WAL modu)</td></tr>
+    <tr><td>Unique Cihaz</td><td>1.137 MAC adresi</td></tr>
+  </tbody>
+</table>
+
+<div class="page-break"></div>
+
+<!-- 2. MİMARİ -->
+<div class="doc-header"><span>Eduroam NPS Loglama Sistemi — Teknik Dokümantasyon</span><span>v4.0</span></div>
+<h1><span class="section-num">2</span>Sistem Mimarisi</h1>
+<p>Sistem üç ana katmandan oluşmaktadır: <strong>veri toplama</strong> (kolektör), <strong>veri saklama</strong> (SQLite) ve <strong>veri sunumu</strong> (HTTP API + Dashboard).</p>
+
+<h2>2.1 Veri Akışı</h2>
+<table>
+  <thead><tr><th>#</th><th>Bileşen</th><th>Açıklama</th></tr></thead>
+  <tbody>
+    <tr><td class="mono" style="width:30px">1</td><td><strong>NPS Log Dosyaları</strong><br><span class="mono">IN{YYMMDD}.log</span></td><td>Windows NPS her kimlik doğrulama olayını IAS XML formatında günlük dosyalara yazar. Konum: <code>C:\Users\radius1\Desktop\nps\</code>. Günlük boyut 50–450 MB arasındadır.</td></tr>
+    <tr><td class="mono">2</td><td><strong>Kolektör</strong><br><span class="mono">PS7 Görev</span></td><td>Her 10 dakikada <code>NT AUTHORITY\SYSTEM</code> hesabıyla çalışır. Log satırlarını ayrıştırır, PT=1/PT=2/PT=3 paketlerini FIFO önbellek ile eşleştirir ve SQLite'a 500'lük batch transaction'larla yazar.</td></tr>
+    <tr><td class="mono">3</td><td><strong>SQLite Veritabanı</strong><br><span class="mono">eduroam_logs.db</span></td><td>AuthLog ve Devices tablolarını içerir. WAL (Write-Ahead Logging) modu sayesinde kolektör yazarken HTTP sunucu eşzamanlı okuma yapabilir. Unique index ile duplikat önlenir.</td></tr>
+    <tr><td class="mono">4</td><td><strong>HTTP API Sunucusu</strong><br><span class="mono">PS7 HttpListener</span></td><td>Sistem başlangıcında <code>NT AUTHORITY\SYSTEM</code> olarak çalışmaya başlar. <code>http://127.0.0.1:8080</code> adresini dinler. <code>/api/charts</code> ve <code>/api/recent</code> endpoint'leri SQLite'ı doğrudan sorgular.</td></tr>
+    <tr><td class="mono">5</td><td><strong>Web Dashboard</strong><br><span class="mono">HTML + JS</span></td><td>Tarayıcıda açılır. <code>fetch()</code> API çağrılarıyla sunucudan veri çeker. Material Design 3 tasarımı, koyu/açık tema toggle, anlık filtre ve sıralama içerir.</td></tr>
+  </tbody>
+</table>
+
+<h2>2.2 RADIUS Paket Tipi Mantığı</h2>
+<p>NPS IAS log dosyasında her kimlik doğrulama olayı birden fazla RADIUS paketi olarak kaydedilir. Kolektör aşağıdaki eşleştirme mantığıyla çalışır:</p>
+<table>
+  <thead><tr><th>Packet-Type</th><th>RADIUS Mesajı</th><th>Kolektör Davranışı</th></tr></thead>
+  <tbody>
+    <tr><td class="mono">PT=1</td><td>Access-Request</td><td>Client-IP bazlı FIFO önbelleğe alınır. Kullanıcı adı, MAC adresi, NAS bilgileri burada bulunur. Direkt veritabanına yazılmaz.</td></tr>
+    <tr><td class="mono">PT=2</td><td>Access-Accept</td><td>NPS'in kabul kararı. Önbellekten Client-IP ile kullanıcı bilgisi alınır. <strong>SUCCESS</strong> olarak veritabanına yazılır.</td></tr>
+    <tr><td class="mono">PT=3</td><td>Access-Reject</td><td>NPS'in ret kararı. PT=3 kaydı kullanıcı adını zaten taşır. Gerçek Reason-Code buradadır. <strong>FAILURE</strong> olarak yazılır.</td></tr>
+    <tr><td class="mono">PT=11</td><td>Access-Challenge</td><td>EAP görüşme adımı — gürültü. Atlanır, kaydedilmez.</td></tr>
+  </tbody>
+</table>
+
+<h2>2.3 Önbellek Mekanizması (Cache)</h2>
+<p>PT=2 (Accept) kayıtlarında kullanıcı adı genellikle bulunmaz; bu bilgi yalnızca PT=1'de mevcuttur. Kolektör, her erişim noktası (Client-IP) için bir FIFO kuyruk (Queue) tutar. PT=1 geldiğinde kuyruklanır; PT=2/PT=3 geldiğinde en eski PT=1 kuyruktan çıkarılıp kullanıcı bilgisi alınır. Kuyruğun AP başına 50 item sınırı vardır.</p>
+
+<div class="page-break"></div>
+
+<!-- 3. DOSYA YAPISI -->
+<div class="doc-header"><span>Eduroam NPS Loglama Sistemi — Teknik Dokümantasyon</span><span>v4.0</span></div>
+<h1><span class="section-num">3</span>Dosya Yapısı ve Açıklamaları</h1>
+
+<h2>3.1 Sunucu Çalışma Klasörü: <code>C:\EduroamLogs\</code></h2>
+<table>
+  <thead><tr><th style="width:38%">Dosya Adı</th><th style="width:12%">Tür</th><th>Açıklama</th></tr></thead>
+  <tbody>
+    <tr><td class="mono">Eduroam-NPS-LogCollector.ps1</td><td>PS7 Script</td><td>Ana kolektör scripti. IAS XML log satırlarını parse eder, PT=1→PT=2/3 FIFO eşleştirmesi yapar, SQLite'a batch transaction ile yazar. Her 10 dakikada zamanlanmış görev olarak otomatik çalışır. Log rotation (5 MB), atomic state write, process priority=High optimizasyonlarını içerir.</td></tr>
+    <tr><td class="mono">Start-EduroamServer.ps1</td><td>PS7 Script</td><td>HTTP API sunucusu. <code>System.Net.HttpListener</code> kullanır. Üç endpoint: <code>/</code> (HTML), <code>/style.css</code> (CSS), <code>/api/charts</code> (grafik verisi), <code>/api/recent</code> (filtreli log). SQLite'ı PSSQLite modülü ile doğrudan sorgular. Sistem başlangıcında otomatik çalışır.</td></tr>
+    <tr><td class="mono">Export-EduroamToJSON.ps1</td><td>PS7 Script</td><td>Eski JSON tabanlı export scripti. HTTP sunucu kullanıldığında gerekli değildir. Geriye dönük uyumluluk için tutulmaktadır.</td></tr>
+    <tr><td class="mono">Reset-And-Backfill.ps1</td><td>PS7 Script</td><td>Veritabanını sıfırlayıp son 7 günün NPS log dosyalarından yeniden doldurur. Silmeden önce "EVET" onayı ister. Duplikat riski olmadan çalışır.</td></tr>
+    <tr><td class="mono">Register-ScheduledTasks.ps1</td><td>PS7 Script</td><td>İki zamanlanmış görevi kaydeder: <code>EduroamNPSLogCollector</code> (her 10 dk) ve <code>EduroamDashboardServer</code> (sistem başlangıcı). <code>NT AUTHORITY\SYSTEM</code> hesabı ile çalışır. PowerShell 7 yolunu otomatik tespit eder.</td></tr>
+    <tr><td class="mono">eduroam_dashboard.html</td><td>HTML</td><td>Dashboard şablon dosyası. HTTP sunucu bu dosyayı <code>/</code> endpoint'inde serve eder. <code>/style.css</code>'e dışarıdan link verir. Tüm JavaScript içerir: veri yükleme, grafik çizimi, filtre/sıralama, tema toggle, CSV export.</td></tr>
+    <tr><td class="mono">eduroam_dashboard.css</td><td>CSS</td><td>Material Design 3 tabanlı stil dosyası. Koyu tema (:root) ve açık tema (:root[data-theme="light"]) CSS değişkenleri içerir. Roboto + Roboto Mono fontları. Shape scale, elevation, state layer değişkenleri tanımlıdır.</td></tr>
+    <tr><td class="mono">eduroam_logs.db</td><td>SQLite</td><td>Ana veritabanı. AuthLog (~880.000+ kayıt) ve Devices (1.137 cihaz) tablolarını içerir. WAL modu aktif. Unique index (idx_no_dup) duplikat yazımı engeller. Boyut: ~280 MB.</td></tr>
+    <tr><td class="mono">last_run.txt</td><td>JSON</td><td>Kolektörün kaldığı yeri saklar. Format: <code>{"File": "IN260503.log", "Timestamp": "2026-05-03T08:43:54..."}</code>. Kolektör her çalışmada okur, tamamlanınca atomic (temp → rename) yöntemiyle günceller.</td></tr>
+    <tr><td class="mono">collector_errors.log</td><td>Log</td><td>Kolektör hata ve bilgi mesajları. 5 MB sınırına ulaşınca <code>collector_errors.old.log</code> olarak arşivlenir, yeni log başlar. Maksimum 10 MB disk kullanımı.</td></tr>
+  </tbody>
+</table>
+
+<h2>3.2 NPS Log Klasörü: <code>C:\Users\radius1\Desktop\nps\</code></h2>
+<table>
+  <thead><tr><th>Format</th><th>Örnek</th><th>Boyut</th><th>Açıklama</th></tr></thead>
+  <tbody>
+    <tr><td class="mono">IN{YYMMDD}.log</td><td class="mono">IN260503.log</td><td>50–450 MB/gün</td><td>Windows NPS'in oluşturduğu IAS metin log dosyası. Her satır tek bir XML Event'tir. NPS aktif yazarken kolektör <code>FileShare.ReadWrite</code> ile okur.</td></tr>
+  </tbody>
+</table>
+<div class="box">
+  <p><strong>IAS XML Satır Formatı:</strong></p>
+  <p style="font-family:monospace;font-size:8.5pt">&lt;Event&gt;&lt;Timestamp&gt;05/03/2026 10:22:34.000&lt;/Timestamp&gt;&lt;Packet-Type data_type="0"&gt;2&lt;/Packet-Type&gt;&lt;User-Name data_type="1"&gt;kdemirci@kastamonu.edu.tr&lt;/User-Name&gt;&lt;Client-IP-Address data_type="3"&gt;10.1.1.113&lt;/Client-IP-Address&gt;&lt;Reason-Code data_type="0"&gt;0&lt;/Reason-Code&gt;...&lt;/Event&gt;</p>
+</div>
+
+<div class="page-break"></div>
+
+<!-- 4. VERİTABANI -->
+<div class="doc-header"><span>Eduroam NPS Loglama Sistemi — Teknik Dokümantasyon</span><span>v4.0</span></div>
+<h1><span class="section-num">4</span>Veritabanı Şeması</h1>
+<p>Veritabanı SQLite formatındadır (<code>eduroam_logs.db</code>). WAL (Write-Ahead Logging) modu ile eşzamanlı okuma/yazma desteği sağlanmaktadır. <code>INSERT OR IGNORE</code> ve unique index kombinasyonu duplikat yazımı önler.</p>
+
+<h2>4.1 AuthLog Tablosu</h2>
+<table>
+  <thead><tr><th>Sütun</th><th>Tip</th><th>Açıklama</th></tr></thead>
+  <tbody>
+    <tr><td class="mono">LogID</td><td>INTEGER PK</td><td>Otomatik artan birincil anahtar (AUTOINCREMENT)</td></tr>
+    <tr><td class="mono">EventID</td><td>INTEGER</td><td>RADIUS Packet-Type değeri (2=Accept → SUCCESS, 3=Reject → FAILURE)</td></tr>
+    <tr><td class="mono">TimeCreated</td><td>TEXT</td><td>ISO format: yyyy-MM-dd HH:mm:ss. İndeksli (idx_time).</td></tr>
+    <tr><td class="mono">FullUsername</td><td>TEXT</td><td>Tam kullanıcı adı: kullanici@kurum.edu.tr</td></tr>
+    <tr><td class="mono">Username</td><td>TEXT</td><td>Kullanıcı adı kısmı (@ öncesi). İndeksli (idx_user).</td></tr>
+    <tr><td class="mono">Realm</td><td>TEXT</td><td>Kurum adı kısmı (@ sonrası, örn: kastamonu.edu.tr). İndeksli (idx_realm).</td></tr>
+    <tr><td class="mono">ClientIP</td><td>TEXT</td><td>Erişim noktasının (AP/NAS) IP adresi. Cache anahtarı olarak kullanılır.</td></tr>
+    <tr><td class="mono">NASIdentifier</td><td>TEXT</td><td>AP'nin tanımlayıcı adı (örn: ruckus3). İndeksli (idx_nas).</td></tr>
+    <tr><td class="mono">NASIPAddress</td><td>TEXT</td><td>NAS IP adresi (genellikle ClientIP ile aynı)</td></tr>
+    <tr><td class="mono">CalledStationID</td><td>TEXT</td><td>Bağlanılan SSID ve/veya BSSID bilgisi</td></tr>
+    <tr><td class="mono">CallingStationID</td><td>TEXT</td><td>Kullanıcı cihazının MAC adresi (büyük harf, tire ayrımlı)</td></tr>
+    <tr><td class="mono">AuthType</td><td>TEXT</td><td>Kimlik doğrulama yöntemi (PEAP, EAP-TLS vb.)</td></tr>
+    <tr><td class="mono">PolicyName</td><td>TEXT</td><td>Uygulanan NPS ağ ilkesinin adı</td></tr>
+    <tr><td class="mono">ReasonCode</td><td>INTEGER</td><td>Hata/başarı kodu. 0=başarı, diğerleri ret nedeni. İndeksli (idx_result ile birlikte).</td></tr>
+    <tr><td class="mono">Reason</td><td>TEXT</td><td>ReasonCode'un okunabilir Türkçe açıklaması (örn: "Yanlış şifre girişi")</td></tr>
+    <tr><td class="mono">Result</td><td>TEXT</td><td>SUCCESS veya FAILURE. İndeksli (idx_result).</td></tr>
+  </tbody>
+</table>
+<p style="font-size:8.5pt;color:var(--muted)"><strong>Unique Index (idx_no_dup):</strong> TimeCreated + Username + CallingStationID + Result + ClientIP kombinasyonu benzersizdir. Bu sayede aynı kayıt iki kez yazılamaz.</p>
+
+<h2>4.2 Devices Tablosu</h2>
+<table>
+  <thead><tr><th>Sütun</th><th>Tip</th><th>Açıklama</th></tr></thead>
+  <tbody>
+    <tr><td class="mono">DeviceID</td><td>INTEGER PK</td><td>Otomatik artan birincil anahtar</td></tr>
+    <tr><td class="mono">MACAddress</td><td>TEXT UNIQUE</td><td>Cihazın MAC adresi (büyük harf). Benzersiz index. Cihaz başına tek kayıt.</td></tr>
+    <tr><td class="mono">FirstSeen</td><td>TEXT</td><td>Cihazın ilk gözlemlendiği tarih-saat</td></tr>
+    <tr><td class="mono">LastSeen</td><td>TEXT</td><td>Cihazın en son bağlantı tarih-saati (her auth'da güncellenir)</td></tr>
+    <tr><td class="mono">LastUsername</td><td>TEXT</td><td>Cihazı en son kullanan kullanıcı adı</td></tr>
+    <tr><td class="mono">LastResult</td><td>TEXT</td><td>En son bağlantı sonucu (SUCCESS veya FAILURE)</td></tr>
+  </tbody>
+</table>
+
+<div class="page-break"></div>
+
+<!-- 5. HTTP API -->
+<div class="doc-header"><span>Eduroam NPS Loglama Sistemi — Teknik Dokümantasyon</span><span>v4.0</span></div>
+<h1><span class="section-num">5</span>HTTP API Endpoint Referansı</h1>
+<p>Sunucu <code>http://127.0.0.1:8080</code> adresinde dinler (yalnızca localhost). Tüm API yanıtları UTF-8 kodlamalı JSON formatındadır.</p>
+
+<h2>5.1 Endpointler</h2>
+<table>
+  <thead><tr><th>Endpoint</th><th>Yöntem</th><th>Açıklama</th></tr></thead>
+  <tbody>
+    <tr><td class="mono">/</td><td>GET</td><td><code>eduroam_dashboard.html</code> şablonunu serve eder. Her istekte diskten okur — sunucu yeniden başlatılmadan HTML güncellenebilir.</td></tr>
+    <tr><td class="mono">/style.css</td><td>GET</td><td><code>eduroam_dashboard.css</code> dosyasını serve eder. 5 dakika Cache-Control başlığı ekler.</td></tr>
+    <tr><td class="mono">/api/charts</td><td>GET</td><td>Dashboard'un grafik verilerini tek sorguda döndürür: summary, trend, topFail, topUsers, byNAS, byHour, byRealm, byReason, uniqueUsers, uniqueDevices.</td></tr>
+    <tr><td class="mono">/api/recent</td><td>GET</td><td>Filtreli ve sayfalı log kayıtlarını döndürür. Yanıt yapısı: <code>{data:[], total:int, page:int, pages:int, limit:int}</code>.</td></tr>
+  </tbody>
+</table>
+
+<h2>5.2 /api/recent Sorgu Parametreleri</h2>
+<table>
+  <thead><tr><th>Parametre</th><th>Tip</th><th>Örnek</th><th>Açıklama</th></tr></thead>
+  <tbody>
+    <tr><td class="mono">page</td><td>integer</td><td class="mono">1</td><td>Sayfa numarası (varsayılan: 1)</td></tr>
+    <tr><td class="mono">limit</td><td>integer</td><td class="mono">200</td><td>Sayfa başına kayıt (varsayılan: 200, maks: 1000)</td></tr>
+    <tr><td class="mono">from</td><td>tarih</td><td class="mono">2026-04-28</td><td>Başlangıç tarihi (yyyy-MM-dd). Dahil.</td></tr>
+    <tr><td class="mono">to</td><td>tarih</td><td class="mono">2026-04-30</td><td>Bitiş tarihi (yyyy-MM-dd). Saat 23:59:59'a kadar dahil.</td></tr>
+    <tr><td class="mono">result</td><td>string</td><td class="mono">FAILURE</td><td>SUCCESS veya FAILURE filtresi</td></tr>
+    <tr><td class="mono">username</td><td>string</td><td class="mono">kdemirci</td><td>Kullanıcı adı içerir (LIKE %...%)</td></tr>
+    <tr><td class="mono">realm</td><td>string</td><td class="mono">kastamonu</td><td>Realm adı içerir (LIKE %...%)</td></tr>
+    <tr><td class="mono">nas</td><td>string</td><td class="mono">ruckus</td><td>AP adı içerir (LIKE %...%)</td></tr>
+    <tr><td class="mono">mac</td><td>string</td><td class="mono">EC-58</td><td>MAC adresi içerir (LIKE %...%)</td></tr>
+    <tr><td class="mono">ip</td><td>string</td><td class="mono">10.1</td><td>AP IP adresi içerir (LIKE %...%)</td></tr>
+    <tr><td class="mono">rc</td><td>integer</td><td class="mono">16</td><td>Reason Code tam eşleşme (= operatörü)</td></tr>
+    <tr><td class="mono">sort</td><td>string</td><td class="mono">Username</td><td>Sıralama sütunu. İzin verilenler: Zaman, Username, Realm, ClientIP, NASIdentifier, CallingStationID, Result, ReasonCode</td></tr>
+    <tr><td class="mono">dir</td><td>string</td><td class="mono">asc</td><td>Sıralama yönü: asc veya desc (varsayılan: desc)</td></tr>
+  </tbody>
+</table>
+
+<div class="page-break"></div>
+
+<!-- 6. ZAMANLANMIŞ GÖREVLER -->
+<div class="doc-header"><span>Eduroam NPS Loglama Sistemi — Teknik Dokümantasyon</span><span>v4.0</span></div>
+<h1><span class="section-num">6</span>Zamanlanmış Görevler</h1>
+<table>
+  <thead><tr><th>Görev Adı</th><th>Tetikleyici</th><th>Hesap</th><th>Script</th></tr></thead>
+  <tbody>
+    <tr><td class="mono">EduroamNPSLogCollector</td><td>Her 10 dakika (maks 9 dk çalışma süresi)</td><td class="mono">NT AUTHORITY\SYSTEM</td><td class="mono">Eduroam-NPS-LogCollector.ps1</td></tr>
+    <tr><td class="mono">EduroamDashboardServer</td><td>Sistem başlangıcı (süresiz, askıya alınmaz)</td><td class="mono">NT AUTHORITY\SYSTEM</td><td class="mono">Start-EduroamServer.ps1</td></tr>
+    <tr><td class="mono">EduroamServerWatchdog</td><td>Her 5 dakika (opsiyonel)</td><td class="mono">NT AUTHORITY\SYSTEM</td><td>API'yi test eder, sunucu düştüyse yeniden başlatır</td></tr>
+  </tbody>
+</table>
+<div class="box-note box">
+  <p><strong>Not:</strong> Kolektör tamamlandığında artık JSON export tetiklemez. HTTP sunucu SQLite'ı doğrudan sorguladığından ayrı bir export adımı gerekmez. Bu sayede <code>EduroamDashboardExport</code> görevi kaldırılmıştır.</p>
+</div>
+
+<h1><span class="section-num">7</span>Kurulum Gereksinimleri ve Adımları</h1>
+<h2>7.1 Sunucu Gereksinimleri</h2>
+<table>
+  <thead><tr><th>Bileşen</th><th>Gereksinim</th><th>Notlar</th></tr></thead>
+  <tbody>
+    <tr><td>İşletim Sistemi</td><td>Windows Server 2016 veya üzeri</td><td>NPS rolü kurulu ve IAS text logging aktif olmalı</td></tr>
+    <tr><td>PowerShell</td><td>v7.0 veya üzeri (pwsh)</td><td>Konum: <code>C:\Windows\System32\PowerShell\7\pwsh.exe</code></td></tr>
+    <tr><td>PSSQLite Modülü</td><td>v1.1.0 veya üzeri</td><td>Kolektör ilk çalışmada otomatik kurar: <code>Install-Module PSSQLite</code></td></tr>
+    <tr><td>Disk Alanı</td><td>Minimum 2 GB serbest</td><td>280 MB DB + yıllık ~1.5 GB büyüme + log dosyaları</td></tr>
+    <tr><td>Ağ Erişimi</td><td>127.0.0.1:8080 erişilebilir</td><td>Yalnızca localhost — dış erişim kapalı</td></tr>
+    <tr><td>NPS Log Klasörü</td><td><code>C:\Users\radius1\Desktop\nps\</code></td><td>IAS text logging bu klasöre yazmalı (yapılandırılabilir)</td></tr>
+    <tr><td>NPS Log Formatı</td><td>IAS XML format, IN{YYMMDD}.log</td><td>NPS Accounting → Log to text file → XML formatı seçilmeli</td></tr>
+  </tbody>
+</table>
+
+<h2>7.2 Kurulum Adımları</h2>
+<div class="box">
+  <p><strong>Adım 1:</strong> PowerShell 7'yi kurun:<br><code>winget install Microsoft.PowerShell</code></p>
+  <p><strong>Adım 2:</strong> Tüm proje dosyalarını <code>C:\EduroamLogs\</code> klasörüne kopyalayın.</p>
+  <p><strong>Adım 3:</strong> SQLite veritabanını oluşturun:<br><code>pwsh -ExecutionPolicy Bypass -File C:\EduroamLogs\Setup-SQLite.ps1</code></p>
+  <p><strong>Adım 4:</strong> (Opsiyonel) Mevcut Access veritabanı varsa migrate edin:<br><code>pwsh -ExecutionPolicy Bypass -File C:\EduroamLogs\Migrate-AccessToSQLite.ps1</code></p>
+  <p><strong>Adım 5:</strong> Son 7 günün verilerini doldurun (backfill):<br><code>pwsh -ExecutionPolicy Bypass -File C:\EduroamLogs\Reset-And-Backfill.ps1</code></p>
+  <p><strong>Adım 6:</strong> Zamanlanmış görevleri kaydedin (yönetici PowerShell ile):<br><code>pwsh -ExecutionPolicy Bypass -File C:\EduroamLogs\Register-ScheduledTasks.ps1</code></p>
+  <p><strong>Adım 7:</strong> HTTP sunucuyu manuel test edin:<br><code>pwsh -ExecutionPolicy Bypass -File C:\EduroamLogs\Start-EduroamServer.ps1</code></p>
+  <p><strong>Adım 8:</strong> Dashboard'u açın: <code>http://127.0.0.1:8080</code></p>
+</div>
+
+<div class="page-break"></div>
+
+<!-- 8. DASHBOARD -->
+<div class="doc-header"><span>Eduroam NPS Loglama Sistemi — Teknik Dokümantasyon</span><span>v4.0</span></div>
+<h1><span class="section-num">8</span>Dashboard Kullanımı</h1>
+<h2>8.1 Sekmeler</h2>
+<table>
+  <thead><tr><th>Sekme</th><th>İçerik</th></tr></thead>
+  <tbody>
+    <tr><td><strong>📊 Genel Bakış</strong></td><td>6 istatistik kartı (toplam/başarılı/başarısız/challenge/unique kullanıcı-cihaz). Günlük trend ve saatlik dağılım grafikleri. Bugünkü en başarısız kullanıcılar, en aktif AP'ler, realm dağılımı, reason code dağılımı.</td></tr>
+    <tr><td><strong>📋 Log Kayıtları</strong></td><td>Filtreli ve sayfalı log tablosu. Tarih aralığı, kullanıcı adı, realm, AP adı/IP, MAC adresi, sonuç (SUCCESS/FAILURE), reason code filtreleri. Kolon başlığına tıklayarak sunucu taraflı sıralama. CSV export (aktif filtrelerle).</td></tr>
+    <tr><td><strong>🔍 Analiz</strong></td><td>Başarı oranı göstergesi (halka grafik). Günlük başarılı/başarısız trend karşılaştırması. En sık hata nedenleri (kullanıcı dostu açıklamalarla). Kurum bazlı başarısız girişler. Otomatik anomali tespiti ve öneriler.</td></tr>
+    <tr><td><strong>📖 NPS Referans</strong></td><td>Sık karşılaşılan 6 sorun için hızlı çözüm rehberi. Windows Event ID kataloğu (6272-6280). RADIUS Packet-Type değerleri. Reason Code tam kataloğu (RFC 2865 + Microsoft uzantıları, RC 0-113).</td></tr>
+  </tbody>
+</table>
+
+<h2>8.2 Özellikler</h2>
+<table>
+  <thead><tr><th>Özellik</th><th>Açıklama</th></tr></thead>
+  <tbody>
+    <tr><td>Tema Toggle</td><td>🌙/☀️ butonu ile koyu (MD3 dark) ve açık (MD3 light) tema arası geçiş. Tercih localStorage'a kaydedilir.</td></tr>
+    <tr><td>Anlık Filtre</td><td>Filtre alanına yazıldıkça 300ms debounce ile sunucudan yeni sorgu atılır. Tüm filtreler birlikte çalışır.</td></tr>
+    <tr><td>Sunucu Taraflı Sayfalama</td><td>Tüm veri tarayıcıya yüklenmez. Her sayfada 200 kayıt çekilir. Toplam kayıt sayısı API'den alınır.</td></tr>
+    <tr><td>Grafik Güncelleme</td><td>YENİLE butonu /api/charts'ı yeniden çeker. Grafikler tema değişiminde otomatik yeniden çizilir.</td></tr>
+    <tr><td>Reason Code Açıklamaları</td><td>Teknik kod yerine kullanıcı dostu Türkçe açıklama gösterilir (örn: RC-16 → "Yanlış şifre girişi").</td></tr>
+  </tbody>
+</table>
+
+<div class="page-break"></div>
+
+<!-- 9-13 -->
+<div class="doc-header"><span>Eduroam NPS Loglama Sistemi — Teknik Dokümantasyon</span><span>v4.0</span></div>
+<h1><span class="section-num">9</span>Güvenlik Notları</h1>
+<div class="box-warn box">
+  <p><strong>Localhost Kısıtlaması:</strong> HTTP sunucu yalnızca 127.0.0.1 dinler. Dashboard'a uzaktan erişim için RDP veya SSH tünel gereklidir.</p>
+  <p><strong>SQL Injection Koruması:</strong> LIKE filtreler için single-quote escape, ReasonCode için integer cast kullanılır. Parametre enjeksiyonu önlenmiştir.</p>
+  <p><strong>HTML Injection Koruması:</strong> JSON içindeki &lt;/script&gt; ve &lt;!-- karakterleri escape edilir.</p>
+  <p><strong>Sistem Hesabı:</strong> Görevler NT AUTHORITY\SYSTEM ile çalışır. Gerekirse daha kısıtlı bir servis hesabı kullanılabilir.</p>
+  <p><strong>Veritabanı Şifreleme:</strong> SQLite dosyası şifrelenmemiştir. Sunucu disk şifreleme (BitLocker) aktif olmalıdır.</p>
+  <p><strong>Veri Gizliliği:</strong> Kullanıcı adları ve MAC adresleri plaintext saklanır. KVKK/GDPR kapsamında değerlendirin.</p>
+</div>
+
+<h1><span class="section-num">10</span>Bilinen Kısıtlamalar</h1>
+<div class="box-note box">
+  <p><strong>EAP Anonim Dış Kimlik (~%13 kayıp):</strong> Bazı cihazlar EAP görüşmesinde <code>anonymous@realm</code> kullanır. PT=1 paketinde kullanıcı adı boş → PT=2 eşleştirilemez → kayıt atlanır. Eduroam protokolünün yapısal kısıtıdır.</p>
+  <p><strong>Gece Yarısı Oturum:</strong> 23:59:59'da başlayan EAP görüşmesinin PT=1'i dünkü, PT=2'si bugünkü dosyada olduğunda eşleştirme yapılamaz. Günlük 0–5 kayıt etkiler.</td></p>
+  <p><strong>SQLite Büyüme:</strong> Yıllık ~5.5M kayıt büyüme oranıyla 2+ yılda dikkat gerektiren bir boyuta ulaşabilir. Periyodik arşivleme önerilir.</p>
+</div>
+
+<h1><span class="section-num">11</span>Rutin Bakım</h1>
+<table>
+  <thead><tr><th>Görev</th><th>Sıklık</th><th>Komut / Açıklama</th></tr></thead>
+  <tbody>
+    <tr><td>Kolektör durumu</td><td>Günlük</td><td class="mono">Get-ScheduledTaskInfo "EduroamNPSLogCollector" | Select LastRunTime, LastTaskResult</td></tr>
+    <tr><td>Sunucu durumu</td><td>Günlük</td><td class="mono">Invoke-WebRequest "http://127.0.0.1:8080/api/charts" | Select StatusCode</td></tr>
+    <tr><td>DB boyutu izleme</td><td>Aylık</td><td class="mono">(Get-Item "C:\EduroamLogs\eduroam_logs.db").Length / 1MB</td></tr>
+    <tr><td>Eski NPS log silme</td><td>Aylık</td><td>30 günden eski .log dosyaları silinebilir. Kolektör zaten işlemiştir.</td></tr>
+    <tr><td>Log dosyası kontrolü</td><td>Haftalık</td><td>collector_errors.log içinde ERROR satırı var mı kontrol edin.</td></tr>
+  </tbody>
+</table>
+
+<h1><span class="section-num">12</span>Sorun Giderme Rehberi</h1>
+<table>
+  <thead><tr><th>Belirti</th><th>Neden</th><th>Çözüm</th></tr></thead>
+  <tbody>
+    <tr><td>Dashboard veri gelmiyor</td><td>Kolektör durmuş</td><td>LastTaskResult=0 olduğunu doğrulayın. Değilse pwsh ile manuel çalıştırın.</td></tr>
+    <tr><td>cv is not a function</td><td>Eski HTML önbellekte</td><td>Ctrl+Shift+R ile sayfayı yenileyin.</td></tr>
+    <tr><td>UNIQUE constraint hatası (log'da)</td><td>INSERT OR IGNORE eksik</td><td>Kolektörde insertSQL'in INSERT OR IGNORE ile başladığını doğrulayın.</td></tr>
+    <tr><td>Dosya bulunamadı (kolektör)</td><td>Log klasörü yanlış</td><td>$LogDir değişkenini ve IN??????.log formatını kontrol edin.</td></tr>
+    <tr><td>Sunucu başlamıyor (267009)</td><td>pwsh yolu yanlış</td><td>Get-Command pwsh | Select Source ile gerçek yolu bulun.</td></tr>
+    <tr><td>Tüm kayıtlar SUCCESS görünüyor</td><td>Eski kolektör versiyonu</td><td>$WantedPacketTypes = @("1","2","3") olduğunu doğrulayın.</td></tr>
+    <tr><td>PSSQLite bulunamadı</td><td>PSGallery erişim sorunu</td><td>Install-Module PSSQLite -Force -Scope AllUsers ile manuel kurun.</td></tr>
+  </tbody>
+</table>
+
+<h1><span class="section-num">13</span>Sürüm Geçmişi</h1>
+<table>
+  <thead><tr><th>Sürüm</th><th>Tarih</th><th>Değişiklikler</th></tr></thead>
+  <tbody>
+    <tr><td class="mono">v4.0</td><td>Mayıs 2026</td><td>SQLite'a geçiş, HTTP API sunucu, Material Design 3, açık/koyu tema toggle, kullanıcı dostu reason açıklamaları, FIFO cache, unique index, gerçek zamanlı dashboard.</td></tr>
+    <tr><td class="mono">v3.0</td><td>Nisan 2026</td><td>PT=1→PT=2/3 FIFO eşleştirme, duplikat önleme, transaction batch (500), PSSQLite modülü.</td></tr>
+    <tr><td class="mono">v2.0</td><td>Nisan 2026</td><td>NPS Event ID kataloğu, Reason Code açıklamaları, 4 sekmeli dashboard, Access DB optimizasyonları.</td></tr>
+    <tr><td class="mono">v1.0</td><td>Nisan 2026</td><td>İlk sürüm: Microsoft Access + JSON export + statik HTML dashboard.</td></tr>
+  </tbody>
+</table>
+
+<hr class="hr-accent">
+<div class="doc-footer">
+  <span>Kastamonu Üniversitesi — Bilgi İşlem Daire Başkanlığı</span>
+  <span id="footerDate"></span>
+</div>
+
+</div><!-- /page -->
+
+<script>
+const d = new Date();
+const fmt = d.toLocaleDateString('tr-TR',{day:'2-digit',month:'2-digit',year:'numeric'});
+document.getElementById('docDate').textContent = fmt;
+document.getElementById('footerDate').textContent = fmt;
+</script>
+</body>
+</html>

@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<html lang="tr" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Eduroam NPS Dashboard — Kastamonu Üniversitesi</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+<style>/*
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  background: rgba(33,31,38,.97);
+  backdrop-filter: blur(16px);
+  position: sticky; top: 0; z-index: 100;
+}
+.logo { display: flex; align-items: center; gap: .75rem; }
+.logo-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--accent); box-shadow: 0 0 10px var(--accent);
+  animation: pulse 2.5s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.85)} }
+/* MD3 Title Large */
+.logo-text { font-size: 1.05rem; font-weight: 700; letter-spacing: .01em; }
+.logo-text span { color: var(--accent); }
+/* MD3 Label Small */
+.logo-sub { font-size: .72rem; color: var(--muted); font-weight: 400; margin-top: 1px; letter-spacing: .03em; }
+#lastUpdate { font-family: var(--mono); font-size: .72rem; color: var(--muted); letter-spacing: .03em; }
+.header-actions { display: flex; align-items: center; gap: .5rem; }
+/* MD3 Outlined Button */
+.btn {
+  background: transparent; border: 1px solid var(--accent); color: var(--accent);
+  padding: .5rem 1.1rem; border-radius: var(--shape-full); cursor: pointer;
+  font-family: var(--sans); font-size: .8rem; font-weight: 500;
+  letter-spacing: .03em; transition: background .2s, box-shadow .2s;
+  position: relative; overflow: hidden;
+}
+.btn::after { content: ''; position: absolute; inset: 0; border-radius: inherit; background: transparent; transition: background .2s; }
+.btn:hover::after { background: var(--state-hover); }
+.btn:hover { box-shadow: var(--elev-1); }
+/* MD3 Text Button (ghost) */
+.btn-ghost { border-color: var(--outline); color: var(--muted); }
+.btn-ghost:hover::after { background: rgba(202,196,208,.08); }
+.btn-ghost:hover { box-shadow: none; }
+
+/* ── MD3 Navigation Tabs ──────────────────────────────────────────────────── */
+.tab-bar {
+  background: rgba(33,31,38,.97); backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+  display: flex; padding: 0 1.5rem;
+  position: sticky; top: 57px; z-index: 99;
+}
+.tab-btn {
+  padding: .875rem 1.25rem; cursor: pointer;
+  /* MD3 Label Large */
+  font-size: .875rem; font-weight: 500; letter-spacing: .006em;
+  color: var(--muted); border: none; border-bottom: 2px solid transparent;
+  transition: color .2s, border-color .2s; background: none;
+  font-family: var(--sans); white-space: nowrap;
+  position: relative;
+}
+.tab-btn::after { content: ''; position: absolute; inset: 0; background: transparent; transition: background .2s; }
+.tab-btn:hover::after { background: rgba(202,196,208,.06); }
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+main { padding: 1.5rem; max-width: 1700px; margin: 0 auto; }
+
+/* MD3 Label Medium section title */
+.section-title {
+  font-size: .75rem; font-weight: 500; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: .9rem;
+  display: flex; align-items: center; gap: .5rem;
+}
+.section-title::before {
+  content: ''; display: block; width: 3px; height: 1em;
+  background: var(--accent); border-radius: var(--shape-xs);
+}
+
+/* ── MD3 Cards (Filled) ───────────────────────────────────────────────────── */
+.stats-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: .875rem; margin-bottom: 1.5rem; }
+.stat-card {
+  background: var(--bg2); border-radius: var(--shape-lg);
+  padding: 1rem 1.25rem; position: relative; overflow: hidden;
+  transition: box-shadow .2s; box-shadow: var(--elev-1);
+  border: none;
+}
+.stat-card:hover { box-shadow: var(--elev-2); }
+.stat-card::after { content: ''; position: absolute; inset: 0; border-radius: inherit; background: transparent; transition: background .2s; pointer-events: none; }
+.stat-card:hover::after { background: var(--state-hover); }
+/* MD3 tonal top indicator */
+.stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: var(--shape-lg) var(--shape-lg) 0 0; }
+.stat-card.c-blue::before   { background: var(--accent); }
+.stat-card.c-green::before  { background: var(--green); }
+.stat-card.c-red::before    { background: var(--red); }
+.stat-card.c-yellow::before { background: var(--yellow); }
+.stat-card.c-purple::before { background: var(--purple); }
+.stat-card.c-orange::before { background: var(--orange); }
+/* MD3 Label Small */
+.stat-label { font-size: .72rem; font-weight: 500; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; margin-bottom: .4rem; }
+/* MD3 Display Small (numbers) */
+.stat-value { font-family: var(--mono); font-size: 1.65rem; font-weight: 700; line-height: 1; letter-spacing: -.01em; }
+.stat-value.c-blue   { color: var(--accent); }
+.stat-value.c-green  { color: var(--green); }
+.stat-value.c-red    { color: var(--red); }
+.stat-value.c-yellow { color: var(--yellow); }
+.stat-value.c-purple { color: var(--purple); }
+.stat-value.c-orange { color: var(--orange); }
+/* MD3 Body Small */
+.stat-sub { font-size: .72rem; color: var(--muted); margin-top: .35rem; font-family: var(--mono); letter-spacing: .03em; }
+
+/* MD3 Card (Elevated) */
+.card { background: var(--bg2); border-radius: var(--shape-lg); padding: 1.25rem; box-shadow: var(--elev-1); border: none; }
+.two-col   { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+.three-col { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+.four-col  { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+
+canvas { display: block; }
+#trendChart  { width: 100%; height: 145px; }
+#hourlyChart { width: 100%; height: 115px; }
+
+.bar-chart { display: flex; flex-direction: column; gap: 7px; }
+.bar-row { display: flex; align-items: center; gap: 8px; }
+.bar-label { font-family: var(--mono); font-size: .65rem; color: var(--muted); width: 130px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: .02em; }
+.bar-track { flex: 1; height: 8px; background: var(--bg3); border-radius: var(--shape-full); overflow: hidden; }
+.bar-fill { height: 100%; border-radius: var(--shape-full); transition: width .6s cubic-bezier(.4,0,.2,1); }
+.bar-val { font-family: var(--mono); font-size: .65rem; color: var(--muted); width: 52px; text-align: right; flex-shrink: 0; }
+
+/* ── MD3 Text Fields (Filled) ─────────────────────────────────────────────── */
+.filter-bar {
+  background: var(--bg2); border-radius: var(--shape-lg); border: none;
+  padding: 1rem 1.25rem; margin-bottom: .9rem;
+  display: flex; flex-wrap: wrap; gap: .65rem; align-items: flex-end;
+  box-shadow: var(--elev-1);
+}
+.filter-group { display: flex; flex-direction: column; gap: .3rem; }
+/* MD3 Label Small */
+.filter-group label { font-size: .72rem; font-weight: 500; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
+.filter-group input, .filter-group select {
+  background: var(--bg3); border: none; border-bottom: 2px solid var(--outline);
+  color: var(--text); padding: .45rem .75rem;
+  border-radius: var(--shape-sm) var(--shape-sm) 0 0;
+  font-family: var(--mono); font-size: .8rem; font-weight: 400;
+  outline: none; transition: border-color .15s, background .15s; letter-spacing: .02em;
+}
+.filter-group input:hover, .filter-group select:hover { background: rgba(202,196,208,.05); }
+.filter-group input:focus, .filter-group select:focus {
+  border-bottom-color: var(--accent);
+  background: rgba(208,188,255,.05);
+}
+.filter-group input { width: 150px; }
+.filter-group select { width: 160px; }
+/* MD3 Outlined Button */
+#clearBtn {
+  background: transparent; border: 1px solid var(--outline); color: var(--on-surface-variant, var(--muted));
+  padding: .5rem 1rem; border-radius: var(--shape-full); cursor: pointer;
+  font-family: var(--sans); font-size: .8rem; font-weight: 500;
+  letter-spacing: .03em; transition: all .2s; align-self: flex-end;
+}
+#clearBtn:hover { border-color: var(--red); color: var(--red); background: rgba(255,180,171,.08); }
+#recordCount { font-family: var(--mono); font-size: .78rem; color: var(--text); align-self: flex-end; margin-left: auto; font-weight: 500; letter-spacing: .02em; }
+.filter-sep { width: 1px; background: var(--border); align-self: stretch; margin: .2rem 0; }
+.filter-group input[type="date"] { width: 144px; color-scheme: dark; }
+
+/* ── MD3 Data Table ───────────────────────────────────────────────────────── */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: .78rem; }
+thead { position: sticky; top: 0; z-index: 10; }
+thead tr { background: var(--bg3); border-bottom: 1px solid var(--border); }
+th {
+  padding: .8rem .9rem; text-align: left;
+  /* MD3 Label Small */
+  color: var(--muted); font-family: var(--sans); font-weight: 500;
+  font-size: .72rem; letter-spacing: .06em; text-transform: uppercase;
+  white-space: nowrap; cursor: pointer; user-select: none;
+  transition: color .15s;
+}
+th:hover { color: var(--accent); }
+td {
+  padding: .65rem .9rem;
+  border-bottom: 1px solid rgba(73,69,79,.35);
+  white-space: nowrap; max-width: 200px;
+  overflow: hidden; text-overflow: ellipsis;
+  /* MD3 Body Small */
+  font-size: .78rem; letter-spacing: .02em;
+}
+tbody tr:nth-child(even) { background: rgba(43,41,48,.4); }
+tbody tr:hover td { background: var(--state-hover) !important; }
+/* MD3 tonal row indicators */
+tbody tr.row-SUCCESS   td:first-child { border-left: 3px solid var(--green);  background: rgba(109,213,140,.04); }
+tbody tr.row-FAILURE   td:first-child { border-left: 3px solid var(--red);    background: rgba(255,180,171,.04); }
+tbody tr.row-CHALLENGE td:first-child { border-left: 3px solid var(--purple); }
+tbody tr.row-REQUEST   td:first-child { border-left: 3px solid var(--accent); }
+
+/* ── MD3 Assist Chips (badges) ────────────────────────────────────────────── */
+.badge {
+  display: inline-flex; align-items: center;
+  padding: .22rem .65rem; border-radius: var(--shape-full);
+  font-size: .72rem; font-weight: 500; letter-spacing: .03em;
+  gap: .25rem; font-family: var(--sans);
+}
+.badge-SUCCESS   { background: rgba(109,213,140,.15); color: var(--green);  border: 1px solid rgba(109,213,140,.4); }
+.badge-FAILURE   { background: rgba(255,180,171,.15); color: var(--red);    border: 1px solid rgba(255,180,171,.4); }
+.badge-CHALLENGE { background: rgba(239,184,200,.15); color: var(--purple); border: 1px solid rgba(239,184,200,.4); }
+.badge-REQUEST   { background: rgba(208,188,255,.12); color: var(--accent); border: 1px solid rgba(208,188,255,.35); }
+.badge-6272 { background: rgba(109,213,140,.1);  color: var(--green); }
+.badge-6273 { background: rgba(255,180,171,.1);  color: var(--red); }
+.badge-6274 { background: rgba(255,183,77,.1);   color: var(--yellow); }
+.badge-6275 { background: rgba(255,183,77,.08);  color: var(--yellow); }
+.badge-6276 { background: rgba(255,186,121,.1);  color: var(--orange); }
+.badge-6277 { background: rgba(239,184,200,.1);  color: var(--purple); }
+.badge-6278 { background: rgba(109,213,140,.08); color: var(--green); }
+.badge-6279 { background: rgba(255,180,171,.15); color: var(--red); }
+.badge-6280 { background: rgba(208,188,255,.08); color: var(--accent); }
+
+/* ── MD3 Pagination ───────────────────────────────────────────────────────── */
+#pagination { display: flex; gap: .35rem; justify-content: center; padding: .9rem 0; flex-wrap: wrap; }
+#pagination button {
+  background: transparent; border: 1px solid var(--outline); color: var(--muted);
+  padding: .3rem .7rem; border-radius: var(--shape-full); cursor: pointer;
+  font-family: var(--mono); font-size: .72rem; letter-spacing: .02em; transition: all .15s;
+}
+#pagination button.active { background: var(--primary-ctr); border-color: var(--primary-ctr); color: var(--on-primary-ctr); }
+#pagination button:hover  { background: var(--state-hover); border-color: var(--accent); color: var(--accent); }
+
+/* ── MD3 Loading / Progress Linear ───────────────────────────────────────── */
+#loadingMsg {
+  display:flex; flex-direction:column; align-items:center;
+  justify-content:center; min-height:60vh; gap:1.5rem; font-family:var(--sans);
+}
+/* MD3 Title Medium */
+#loadingMsg .ld-title { font-size:1rem; font-weight:500; color:var(--text); letter-spacing:.01em; }
+/* MD3 Body Small */
+#loadingMsg .ld-step  { font-size:.78rem; color:var(--muted); min-height:1.2em; font-family:var(--mono); letter-spacing:.03em; }
+.progress-wrap { width:360px; background:var(--bg3); border-radius:var(--shape-full); overflow:hidden; height:4px; }
+.progress-bar  { height:100%; width:0%; background:var(--accent); border-radius:var(--shape-full); transition:width .3s cubic-bezier(.4,0,.2,1); }
+.progress-pct  { font-size:.9rem; color:var(--accent); font-family:var(--mono); font-weight:500; letter-spacing:.03em; }
+#errorMsg   { text-align:center; padding:2rem; color:var(--red); font-family:var(--mono); display:none; line-height:2; letter-spacing:.02em; }
+#dashboard  { display: none; }
+
+/* ── MD3 Suggestion Chips (reason-pill) ──────────────────────────────────── */
+.reason-pill {
+  display: inline-block; padding: .12rem .48rem;
+  border-radius: var(--shape-full); font-size: .65rem; font-weight: 500;
+  letter-spacing: .03em; background: rgba(147,143,153,.15);
+  color: var(--muted); white-space: nowrap; font-family: var(--mono);
+}
+.reason-pill.rc-ok   { background: rgba(109,213,140,.14); color: var(--green); }
+.reason-pill.rc-warn { background: rgba(255,183,77,.14);  color: var(--yellow); }
+.reason-pill.rc-err  { background: rgba(255,180,171,.14); color: var(--red); }
+.reason-pill.rc-lock { background: rgba(255,186,121,.14); color: var(--orange); }
+
+/* ── MD3 Reference Table ──────────────────────────────────────────────────── */
+.ref-table { width: 100%; border-collapse: collapse; font-size: .78rem; }
+.ref-table th {
+  padding: .6rem .9rem; text-align: left; color: var(--muted);
+  font-size: .72rem; text-transform: uppercase; letter-spacing: .06em;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--sans); font-weight: 500;
+}
+.ref-table td { padding: .6rem .9rem; border-bottom: 1px solid rgba(73,69,79,.35); vertical-align: top; line-height: 1.6; }
+.ref-table td:first-child { font-family: var(--mono); font-weight: 500; white-space: nowrap; }
+.ref-table td:nth-child(2) { font-family: var(--mono); font-size: .7rem; color: var(--yellow); white-space: nowrap; letter-spacing: .02em; }
+.ref-table tr:hover td { background: var(--state-hover); }
+.ref-table tr td:first-child { border-left: 3px solid transparent; padding-left: .75rem; }
+.ref-table tr.cat-ok   td:first-child { border-left-color: var(--green); }
+.ref-table tr.cat-warn td:first-child { border-left-color: var(--yellow); }
+.ref-table tr.cat-err  td:first-child { border-left-color: var(--red); }
+.ref-table tr.cat-lock td:first-child { border-left-color: var(--orange); }
+
+.ri-row { display: flex; align-items: center; gap: .5rem; font-size: .78rem; margin-bottom: .5rem; }
+.ri-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.ri-label { color: var(--muted); flex: 1; }
+.ri-val { font-family: var(--mono); color: var(--text); }
+*/
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-dot"></div>
+    <div>
+      <div class="logo-text">EDUROAM <span>NPS</span> DASHBOARD</div>
+      <div class="logo-sub">Kastamonu Üniversitesi · RADIUS Kimlik Doğrulama İzleme</div>
+    </div>
+  </div>
+  <div class="header-actions">
+    <span id="lastUpdate"></span>
+    <button class="btn btn-ghost" onclick="exportCSV()">⬇ CSV</button>
+    <button id="themeToggle" onclick="toggleTheme()" title="Tema değiştir">🌙</button>
+    <button class="btn" onclick="loadData()">↻ YENİLE</button>
+  </div>
+</header>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('overview')"> GENEL BAKIŞ</button>
+  <button class="tab-btn" onclick="switchTab('logs')">LOG KAYITLARI</button>
+  <button class="tab-btn" onclick="switchTab('analysis')">ANALİZ</button>
+  <button class="tab-btn" onclick="switchTab('reference')">NPS REFERANS</button>
+</div>
+
+<main>
+  <div id="loadingMsg">
+    <div class="ld-title">EDUROAM NPS DASHBOARD</div>
+    <div class="progress-wrap"><div class="progress-bar" id="progressBar"></div></div>
+    <div class="progress-pct" id="progressPct">%0</div>
+    <div class="ld-step" id="progressStep">Veri okunuyor…</div>
+  </div>
+  <div id="errorMsg"></div>
+
+  <div id="dashboard">
+
+    <!-- TAB: OVERVIEW -->
+    <div id="tab-overview" class="tab-content active">
+      <div class="section-title" style="margin-top:.4rem">GENEL ÖZET — SON <span id="daysLabel">7</span> GÜN</div>
+      <div class="stats-grid">
+        <div class="stat-card c-blue">
+          <div class="stat-label">Toplam Kayıt</div>
+          <div class="stat-value c-blue" id="sToplam">—</div>
+          <div class="stat-sub" id="sDays"></div>
+        </div>
+        <div class="stat-card c-green">
+          <div class="stat-label">Başarılı (Accept)</div>
+          <div class="stat-value c-green" id="sSuccess">—</div>
+          <div class="stat-sub" id="sSuccessP"></div>
+        </div>
+        <div class="stat-card c-red">
+          <div class="stat-label">Başarısız (Reject)</div>
+          <div class="stat-value c-red" id="sFailure">—</div>
+          <div class="stat-sub" id="sFailureP"></div>
+        </div>
+        <div class="stat-card c-yellow">
+          <div class="stat-label">Challenge (EAP)</div>
+          <div class="stat-value c-yellow" id="sChallenge">—</div>
+          <div class="stat-sub" id="sChallengeP"></div>
+        </div>
+        <div class="stat-card c-purple">
+          <div class="stat-label">Unique Kullanıcı</div>
+          <div class="stat-value c-purple" id="sUniqueUsers">—</div>
+          <div class="stat-sub">7 günlük</div>
+        </div>
+        <div class="stat-card c-orange">
+          <div class="stat-label">Unique Cihaz (MAC)</div>
+          <div class="stat-value c-orange" id="sUniqueDevices">—</div>
+          <div class="stat-sub">toplam DB</div>
+        </div>
+      </div>
+
+      <div class="three-col">
+        <div class="card">
+          <div class="section-title">Günlük Trend (Son 7 Gün)</div>
+          <canvas id="trendChart"></canvas>
+          <div style="display:flex;gap:1rem;margin-top:.5rem;">
+            <span style="font-size:.62rem;color:var(--green);font-family:var(--mono)">■ Başarılı</span>
+            <span style="font-size:.62rem;color:var(--red);font-family:var(--mono)">■ Başarısız</span>
+            <span style="font-size:.62rem;color:var(--purple);font-family:var(--mono)">■ Challenge</span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="section-title">Bugün — En Çok Başarısız Kullanıcı</div>
+          <div class="bar-chart" id="topFailChart"></div>
+        </div>
+        <div class="card">
+          <div class="section-title">En Aktif AP / NAS (7 Gün)</div>
+          <div class="bar-chart" id="nasChart"></div>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div class="card">
+          <div class="section-title">Saatlik Aktivite Dağılımı (7 Gün Kümülatif)</div>
+          <canvas id="hourlyChart"></canvas>
+        </div>
+        <div class="card">
+          <div class="section-title">Realm / Kurum Dağılımı (7 Gün)</div>
+          <div class="bar-chart" id="realmChart"></div>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div class="card">
+          <div class="section-title">Reason Code Dağılımı — Başarısız Oturumlar</div>
+          <div class="bar-chart" id="reasonChart"></div>
+        </div>
+        <div class="card">
+          <div class="section-title">En Aktif Kullanıcılar (Başarılı, 7 Gün)</div>
+          <div class="bar-chart" id="topUsersChart"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: LOGS -->
+    <div id="tab-logs" class="tab-content">
+      <div style="margin-top:.4rem"></div>
+      <div class="filter-bar">
+        <div class="filter-group"><label>Tarih Başlangıç</label><input id="fDateFrom" type="date"></div>
+        <div class="filter-group"><label>Tarih Bitiş</label><input id="fDateTo" type="date"></div>
+        <div class="filter-group"><label>Kullanıcı Adı</label><input id="fUser" type="text" placeholder="kullanici..."></div>
+        <div class="filter-group"><label>Realm / Kurum</label><input id="fRealm" type="text" placeholder="kastamonu.edu.tr..."></div>
+        <div class="filter-group"><label>AP IP</label><input id="fIP" type="text" placeholder="10.1..."></div>
+        <div class="filter-group"><label>MAC Adresi</label><input id="fMAC" type="text" placeholder="AA-BB..."></div>
+        <div class="filter-group"><label>AP Adı (NAS)</label><input id="fNAS" type="text" placeholder="AP-..."></div>
+        <div class="filter-group">
+          <label>Sonuç</label>
+          <select id="fResult">
+            <option value="">Tümü</option>
+            <option value="SUCCESS">✓ SUCCESS</option>
+            <option value="FAILURE">✗ FAILURE</option>
+          </select>
+        </div>
+        <div class="filter-group"><label>Reason Code</label><select id="fReasonCode"><option value="">Tümü</option></select></div>
+        <button id="clearBtn" onclick="clearFilters()">✕ Temizle</button>
+        <span id="recordCount"></span>
+        <span id="totalLoaded" style="font-family:var(--mono);font-size:.65rem;color:var(--muted);align-self:flex-end;"></span>
+        <button class="btn btn-ghost" style="align-self:flex-end" onclick="exportCSV()">⬇ CSV</button>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th onclick="sortBy('Zaman')" id="th-Zaman">📅 Zaman ↕</th>
+                <th onclick="sortBy('Username')" id="th-Username">👤 Kullanıcı ↕</th>
+                <th onclick="sortBy('Realm')" id="th-Realm">🏛 Realm ↕</th>
+                <th onclick="sortBy('ClientIP')" id="th-ClientIP">📡 AP IP ↕</th>
+                <th onclick="sortBy('NASIdentifier')">🔌 AP Adı ↕</th>
+                <th onclick="sortBy('CallingStationID')">📱 MAC ↕</th>
+                <th onclick="sortBy('Result')">Sonuç ↕</th>
+                <th onclick="sortBy('ReasonCode')">RC ↕</th>
+                <th>Reason Açıklaması</th>
+              </tr>
+            </thead>
+            <tbody id="logTable"></tbody>
+          </table>
+        </div>
+        <div id="pagination"></div>
+      </div>
+    </div>
+
+    <!-- TAB: ANALYSIS -->
+    <div id="tab-analysis" class="tab-content">
+      <div style="margin-top:.4rem"></div>
+
+      <!-- Özet istatistikler -->
+      <div class="four-col" style="margin-bottom:1rem">
+        <div class="card" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1.5rem">
+          <div class="section-title">7 Günlük Başarı Oranı</div>
+          <canvas id="ringCanvas" width="150" height="150"></canvas>
+          <div id="ringLabel" style="font-family:var(--mono);font-size:1.8rem;font-weight:700;color:var(--green);margin-top:.5rem;text-align:center"></div>
+          <div id="ringSubLabel" style="font-size:.72rem;color:var(--muted);font-family:var(--mono);margin-top:.2rem;text-align:center"></div>
+        </div>
+        <div class="card" style="grid-column:span 3;">
+          <div class="section-title">Günlük Başarılı vs Başarısız Trend</div>
+          <canvas id="compareChart" style="width:100%;height:180px;"></canvas>
+        </div>
+      </div>
+
+      <!-- Hata analizi -->
+      <div class="two-col">
+        <div class="card">
+          <div class="section-title">En Sık Hata Nedenleri (7 Gün)</div>
+          <div id="reasonAnalysisChart" class="bar-chart" style="margin-top:.5rem"></div>
+        </div>
+        <div class="card">
+          <div class="section-title">Kuruma Göre Başarısız Girişler (7 Gün)</div>
+          <div class="bar-chart" id="realmFailChart"></div>
+        </div>
+      </div>
+
+      <!-- Bulgular ve öneriler -->
+      <div class="card" style="margin-bottom:1rem">
+        <div class="section-title">Öne Çıkan Bulgular &amp; Öneriler</div>
+        <div id="insights" style="font-size:.82rem;line-height:2;color:var(--text);"></div>
+      </div>
+    </div>
+
+    <!-- TAB: REFERENCE -->
+    <div id="tab-reference" class="tab-content">
+      <div style="margin-top:.4rem"></div>
+
+      <!-- Yaygın Sorunlar Hızlı Rehber -->
+      <div class="card" style="margin-bottom:1rem">
+        <div class="section-title">Sık Karşılaşılan Sorunlar — Hızlı Çözüm Rehberi</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.85rem;margin-top:.5rem">
+          <div style="background:var(--bg3);border-radius:var(--shape-md);padding:1rem;border-left:3px solid var(--red)">
+            <div style="font-weight:700;color:var(--red);font-size:.82rem;margin-bottom:.4rem">🔴 Yanlış Şifre (RC-16)</div>
+            <div style="font-size:.75rem;color:var(--muted);line-height:1.7">Kullanıcı şifresini yanlış giriyor veya şifre süresi dolmuş.<br><b style="color:var(--text)">Çözüm:</b> Şifreyi sıfırlatın ya da kullanıcıyı bilgilendirin.</div>
+          </div>
+          <div style="background:var(--bg3);border-radius:var(--shape-md);padding:1rem;border-left:3px solid var(--red)">
+            <div style="font-weight:700;color:var(--red);font-size:.82rem;margin-bottom:.4rem">🔴 Hesap Kilitli (RC-36)</div>
+            <div style="font-size:.75rem;color:var(--muted);line-height:1.7">Ardışık hatalı giriş denemesi sonucu hesap otomatik kilitlendi.<br><b style="color:var(--text)">Çözüm:</b> AD üzerinden kilidi açın, şifreyi sıfırlatın.</div>
+          </div>
+          <div style="background:var(--bg3);border-radius:var(--shape-md);padding:1rem;border-left:3px solid var(--red)">
+            <div style="font-weight:700;color:var(--red);font-size:.82rem;margin-bottom:.4rem">🔴 Kullanıcı Bulunamadı (RC-8)</div>
+            <div style="font-size:.75rem;color:var(--muted);line-height:1.7">Kullanıcı adı yanlış yazılmış veya hesap silinmiş.<br><b style="color:var(--text)">Çözüm:</b> AD'de hesabın varlığını doğrulayın.</div>
+          </div>
+          <div style="background:var(--bg3);border-radius:var(--shape-md);padding:1rem;border-left:3px solid var(--orange)">
+            <div style="font-weight:700;color:var(--orange);font-size:.82rem;margin-bottom:.4rem">🟠 Hesap Devre Dışı (RC-34)</div>
+            <div style="font-size:.75rem;color:var(--muted);line-height:1.7">Hesap AD'de devre dışı bırakılmış (mezuniyet, ayrılma vb.)<br><b style="color:var(--text)">Çözüm:</b> Gerekiyorsa hesabı etkinleştirin.</div>
+          </div>
+          <div style="background:var(--bg3);border-radius:var(--shape-md);padding:1rem;border-left:3px solid var(--orange)">
+            <div style="font-weight:700;color:var(--orange);font-size:.82rem;margin-bottom:.4rem">🟠 Kurum Yönlendirme (RC-112)</div>
+            <div style="font-size:.75rem;color:var(--muted);line-height:1.7">Dış kurum kullanıcısı için yönlendirme kuralı eşleşmedi.<br><b style="color:var(--text)">Çözüm:</b> NPS Bağlantı İsteği İlkelerini kontrol edin.</div>
+          </div>
+          <div style="background:var(--bg3);border-radius:var(--shape-md);padding:1rem;border-left:3px solid var(--yellow)">
+            <div style="font-weight:700;color:var(--yellow);font-size:.82rem;margin-bottom:.4rem">🟡 Şifre Süresi Dolmuş (RC-33)</div>
+            <div style="font-size:.75rem;color:var(--muted);line-height:1.7">Şifre yenilenmesi gerekiyor.<br><b style="color:var(--text)">Çözüm:</b> Kullanıcıya Windows üzerinden şifresini değiştirmesini söyleyin.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="two-col" style="margin-bottom:1rem">
+        <div class="card">
+          <div class="section-title" style="margin-bottom:.6rem">Windows Güvenlik Günlüğü — NPS Event ID Kataloğu</div>
+          <p style="font-size:.7rem;color:var(--muted);margin-bottom:1rem;line-height:1.7">
+            NPS olayları <b style="color:var(--text)">Güvenlik</b> kanalına yazılır.<br>
+            <b style="color:var(--accent)">Event Viewer → Windows Logs → Security</b><br>
+            Kaynak sağlayıcı: <span style="color:var(--yellow)">Microsoft-Windows-Security-Auditing</span>
+          </p>
+          <table class="ref-table" id="eventIdTable-wrap">
+            <thead><tr><th>Event ID</th><th>Durum Etiketi</th><th>Açıklama ve Detay</th></tr></thead>
+            <tbody id="eventIdTableBody"></tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <div class="section-title" style="margin-bottom:.6rem">RADIUS Packet-Type Değerleri (IAS XML Log)</div>
+          <p style="font-size:.7rem;color:var(--muted);margin-bottom:1rem;line-height:1.7">
+            NPS log dosyalarında her satır <code style="color:var(--yellow)">&lt;Event&gt;</code> etiketiyle başlar.<br>
+            <code style="color:var(--yellow)">&lt;Packet-Type&gt;</code> alanı, RADIUS mesaj tipini belirtir.
+          </p>
+          <table class="ref-table">
+            <thead><tr><th>Packet-Type</th><th>RADIUS Mesajı</th><th>Dashboard</th><th>Açıklama</th></tr></thead>
+            <tbody id="packetTypeBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title" style="margin-bottom:.6rem">NPS Reason Code Tam Kataloğu — RFC 2865 + Microsoft Uzantıları</div>
+        <p style="font-size:.7rem;color:var(--muted);margin-bottom:1rem;line-height:1.7">
+          <code style="color:var(--yellow)">&lt;Reason-Code&gt;</code> alanı, NPS'in erişimi neden kabul veya reddettiğini açıklar.
+          Kaynak: <span style="color:var(--accent)">MS-RNAS protokol spec / IAS NPS Event Log Reference</span>
+        </p>
+        <div style="overflow-x:auto">
+        <table class="ref-table" style="min-width:700px">
+          <thead><tr><th>Kod</th><th>Sabit Ad (IAS_*)</th><th>Türkçe Açıklama</th><th>Kategori</th><th>Önerilen Aksiyon</th></tr></thead>
+          <tbody id="reasonCodeBody"></tbody>
+        </table>
+        </div>
+      </div>
+
+    </div>
+
+  </div><!-- /dashboard -->
+</main>
+
+<script>
+// CSS değişkenini oku — tema değişince chart renkleri güncellenir
+function cv(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+
+//EMBEDDED_DATA_PLACEHOLDER
+
+/* ================================================================
+   NPS REFERANS VERİSİ
+   Kaynak: Microsoft NPS Event Log Reference, MS-RNAS, RFC 2865
+   ================================================================ */
+
+const NPS_EVENT_IDS = [
+  {
+    id: 6272, color: '#00e57a', label: 'NETWORK ACCESS GRANTED',
+    desc: 'Ağ İlkesi Sunucusu kullanıcıya erişim izni verdi.',
+    detail: 'Kimlik doğrulama başarılı ve ağ ilkesiyle eşleşti. Access-Accept mesajı AP\'ye gönderildi. İstemci ağa bağlanabilir.'
+  },
+  {
+    id: 6273, color: '#ff4c6a', label: 'NETWORK ACCESS DENIED',
+    desc: 'Ağ İlkesi Sunucusu kullanıcının erişimini reddetti.',
+    detail: 'Kimlik doğrulama başarısız oldu VEYA hiçbir ağ ilkesi bu bağlantıyla eşleşmedi. Reason-Code alanı ret sebebini belirtir. Access-Reject gönderildi.'
+  },
+  {
+    id: 6274, color: '#ffc446', label: 'NETWORK ACCESS REQUEST DISCARDED',
+    desc: 'Ağ İlkesi Sunucusu kullanıcı isteğini işlemeden attı.',
+    detail: 'İstek RADIUS protokolüne uygun değildi ya da NPS yapılandırması bu isteği işleyemedi. Genellikle istemci uyumsuzluğu veya hatalı paylaşımlı gizli anahtarı.'
+  },
+  {
+    id: 6275, color: '#ffc446', label: 'NETWORK ACCOUNTING REQUEST DISCARDED',
+    desc: 'Ağ İlkesi Sunucusu muhasebe (accounting) isteğini attı.',
+    detail: 'RADIUS Accounting-Request mesajı işlenemedi. Muhasebe sunucusu yapılandırması veya paylaşımlı anahtar kontrol edilmeli.'
+  },
+  {
+    id: 6276, color: '#fb923c', label: 'USER QUARANTINED',
+    desc: 'Ağ İlkesi Sunucusu kullanıcıyı karantinaya aldı (NAP).',
+    detail: 'Network Access Protection aktif; istemci sistem sağlık ilkesini (SHV) karşılamıyor. Karantina ağına yönlendirildi, sınırlı erişim veriliyor.'
+  },
+  {
+    id: 6277, color: '#a78bfa', label: 'ACCESS GRANTED — PROBATION',
+    desc: 'NPS erişim verdi ancak istemciyi deneme sürecine (probation) aldı.',
+    detail: 'NAP geçiş modu: istemci sağlık ilkesini karşılamıyor ama geçici tam erişim verildi. Düzeltme sunucusuna yönlendirildi.'
+  },
+  {
+    id: 6278, color: '#00e57a', label: 'FULL ACCESS GRANTED (NAP)',
+    desc: 'NPS tam erişim verdi — istemci sağlık ilkesini karşıladı.',
+    detail: 'NAP System Health Validator doğrulaması başarılı. İstemci uyumlu, kısıtsız erişim verildi.'
+  },
+  {
+    id: 6279, color: '#ff4c6a', label: 'ACCOUNT LOCKED BY NPS',
+    desc: 'NPS tekrarlanan başarısız girişimler nedeniyle hesabı kilitledi.',
+    detail: 'NPS hesap kilitleme özelliği etkin. Yapılandırılan eşik sayısı kadar başarısız deneme yapıldı. Yönetici veya kilitleme süresi dolana kadar giriş engellendi.'
+  },
+  {
+    id: 6280, color: '#00d4ff', label: 'ACCOUNT UNLOCKED BY NPS',
+    desc: 'Ağ İlkesi Sunucusu kullanıcı hesabının kilidini açtı.',
+    detail: 'Yönetici müdahalesi veya kilitleme süresi dolması sonucu hesap kilidi kaldırıldı.'
+  },
+];
+
+const NPS_REASON_CODES = [
+  { code:  0, cn:'IAS_SUCCESS',                    tr:'Başarılı giriş',                                      cat:'ok',   catL:'Başarı',    action:'Normal durum, işlem gerekmez.' },
+  { code:  1, cn:'IAS_INTERNAL_ERROR',             tr:'Sistem hatası — yönetici müdahalesi gerekli',         cat:'err',  catL:'Sistem',    action:'NPS servisini yeniden başlatın, Event Log kontrol edin.' },
+  { code:  2, cn:'IAS_ACCESS_DENIED',              tr:'Erişim izni yok',                                     cat:'err',  catL:'Sistem',    action:'NPS politika ve izin ayarlarını kontrol edin.' },
+  { code:  3, cn:'IAS_MALFORMED_REQUEST',          tr:'Hatalı bağlantı isteği — erişim noktası sorunu',      cat:'err',  catL:'Sistem',    action:'AP/NAS cihazının yapılandırmasını ve firmware sürümünü kontrol edin.' },
+  { code:  4, cn:'IAS_GLOBAL_CATALOG_UNAVAILABLE', tr:'Kimlik sunucusuna ulaşılamıyor',                      cat:'err',  catL:'Sistem',    action:'Active Directory bağlantısını ve DC erişimini kontrol edin.' },
+  { code:  5, cn:'IAS_DOMAIN_UNAVAILABLE',        tr:'Kurum ağına erişilemiyor',                            cat:'err',  catL:'Sistem',    action:'Active Directory servisini ve ağ bağlantısını kontrol edin.' },
+  { code:  6, cn:'IAS_SERVER_UNAVAILABLE',        tr:'RADIUS sunucusu erişilemez durumda',                  cat:'err',  catL:'Sistem',    action:'NPS servisini ve sunucu bağlantısını kontrol edin.' },
+  { code:  7, cn:'IAS_NO_SUCH_DOMAIN',            tr:'Kurum adı tanınmıyor (realm hatalı)',                 cat:'err',  catL:'Sistem',    action:'Kullanıcının kullanici@kurum.edu.tr formatında giriş yaptığını doğrulayın.' },
+  { code:  8, cn:'IAS_NO_SUCH_USER',              tr:'Kullanıcı adı bulunamadı',                            cat:'warn', catL:'Kullanıcı', action:'Kullanıcı adının doğru yazıldığını veya hesabın var olduğunu kontrol edin.' },
+  { code: 16, cn:'IAS_AUTH_FAILURE',              tr:'Yanlış şifre girişi',                                 cat:'err',  catL:'Kullanıcı', action:'Kullanıcı şifresini sıfırlatın veya bilgilendirin.' },
+  { code: 17, cn:'IAS_CHANGE_PASSWORD_FAILURE',   tr:'Şifre değiştirilemedi',                               cat:'warn', catL:'Kullanıcı', action:'Şifre politikası gereksinimlerini kontrol edin (uzunluk, karmaşıklık).' },
+  { code: 18, cn:'IAS_UNSUPPORTED_AUTH_TYPE',     tr:'Cihaz bağlantı yöntemi desteklenmiyor',               cat:'warn', catL:'Cihaz',     action:'Cihazın PEAP/EAP-TLS ayarlarını kontrol edin.' },
+  { code: 32, cn:'IAS_LOCAL_USERS_ONLY',          tr:'Bu kullanıcı türü için kablosuz erişim izni yok',     cat:'warn', catL:'Hesap',     action:'NPS politikasında uzak kullanıcı erişim iznini kontrol edin.' },
+  { code: 33, cn:'IAS_PASSWORD_MUST_CHANGE',      tr:'Şifre süresi dolmuş — yenilenmesi gerekiyor',         cat:'warn', catL:'Hesap',     action:'Kullanıcıya şifresini değiştirmesi gerektiğini bildirin.' },
+  { code: 34, cn:'IAS_ACCOUNT_DISABLED',          tr:'Hesap devre dışı bırakıldı',                          cat:'lock', catL:'Hesap',     action:'AD üzerinden hesabı etkinleştirin veya kullanıcıyla iletişime geçin.' },
+  { code: 35, cn:'IAS_ACCOUNT_EXPIRED',           tr:'Hesap süresi doldu',                                  cat:'lock', catL:'Hesap',     action:'Hesap geçerlilik tarihini AD üzerinden güncelleyin.' },
+  { code: 36, cn:'IAS_ACCOUNT_LOCKED_OUT',        tr:'Hesap kilitlendi (çok fazla hatalı deneme)',           cat:'lock', catL:'Hesap',     action:'AD üzerinden hesap kilidini açın. Olası yetkisiz erişim girişimi.' },
+  { code: 37, cn:'IAS_INVALID_LOGON_HOURS',       tr:'Bu saatlerde bağlantıya izin verilmiyor',             cat:'warn', catL:'Hesap',     action:'Hesabın giriş saati kısıtlamasını AD üzerinden düzenleyin.' },
+  { code: 38, cn:'IAS_ACCOUNT_RESTRICTION',       tr:'Hesap kısıtlı — bağlantı engellendi',                 cat:'lock', catL:'Hesap',     action:'AD kullanıcı özelliklerindeki kısıtlamaları inceleyin.' },
+  { code: 48, cn:'IAS_NO_POLICY_MATCH',           tr:'Bağlantı için uygun kural bulunamadı',                cat:'warn', catL:'İlke',      action:'NPS ağ ilkelerini kontrol edin; kural koşulları ile bağlantı özelliklerinin eşleştiğini doğrulayın.' },
+  { code: 64, cn:'IAS_DIALIN_LOCKED_OUT',         tr:'Kablosuz erişim izni kilitlendi',                     cat:'lock', catL:'Erişim',    action:'AD kullanıcı profili → Çevirmeli Bağlantı sekmesinden erişim iznini kontrol edin.' },
+  { code: 65, cn:'IAS_DIALIN_DISABLED',           tr:'Kullanıcının kablosuz ağ erişimi kapatılmış',         cat:'lock', catL:'Erişim',    action:'AD → Kullanıcı → Dial-in → Ağ Erişimi: "Erişime İzin Ver" olarak ayarlayın.' },
+  { code: 66, cn:'IAS_INVALID_AUTH_TYPE',         tr:'Bağlantı yöntemi uyumsuz',                           cat:'warn', catL:'Cihaz',     action:'Cihaz veya NPS politikasındaki kimlik doğrulama yöntemini kontrol edin.' },
+  { code: 67, cn:'IAS_INVALID_CALLING_STATION',   tr:'Cihazın MAC adresi izin listesinde değil',            cat:'warn', catL:'Cihaz',     action:'NPS politikasındaki MAC kısıtlamalarını kontrol edin.' },
+  { code: 68, cn:'IAS_INVALID_DIALIN_HOURS',      tr:'Bu saatlerde bağlantıya izin verilmiyor',             cat:'warn', catL:'Erişim',    action:'Erişim saati kısıtlamalarını kontrol edin.' },
+  { code: 69, cn:'IAS_INVALID_CALLED_STATION',    tr:'Bağlanılan ağ adı (SSID) tanınmıyor',                 cat:'warn', catL:'Ağ',        action:'eduroam SSID adının NPS politikasıyla eşleştiğini doğrulayın.' },
+  { code: 70, cn:'IAS_INVALID_PORT_TYPE',         tr:'Bağlantı noktası türü uyumsuz',                      cat:'warn', catL:'Cihaz',     action:'NPS politikasında bağlantı noktası türü ayarını kontrol edin.' },
+  { code: 71, cn:'IAS_INVALID_RESTRICTION',       tr:'Bağlantı kısıtlaması engelledi',                     cat:'warn', catL:'Erişim',    action:'NPS politikasındaki Kısıtlamalar sekmesini inceleyin.' },
+  { code: 80, cn:'IAS_NO_RECORD',                 tr:'Kayıt bulunamadı',                                    cat:'warn', catL:'Sistem',    action:'Muhasebe kayıtlarını kontrol edin.' },
+  { code: 96, cn:'IAS_SESSION_TIMEOUT',           tr:'Bağlantı süresi doldu — yeniden giriş gerekli',       cat:'warn', catL:'Oturum',    action:'Oturum zaman aşımı değerini kontrol edin.' },
+  { code: 97, cn:'IAS_UNEXPECTED_REQUEST',        tr:'Beklenmedik bağlantı isteği',                         cat:'err',  catL:'Sistem',    action:'AP ile NPS arasındaki EAP görüşme sürecini inceleyin.' },
+  { code:100, cn:'IAS_PROXY_REJECT',              tr:'Yabancı kurum erişimi reddedildi',                    cat:'err',  catL:'Federasyon', action:'Eduroam federation proxy yapılandırmasını ve sertifikalarını kontrol edin.' },
+  { code:101, cn:'IAS_PROXY_CONNECT_ERROR',       tr:'Yabancı kurum sunucusuna bağlanılamadı',              cat:'err',  catL:'Federasyon', action:'Proxy hedef sunucu IP/port ve güvenlik duvarı kurallarını kontrol edin.' },
+  { code:102, cn:'IAS_PROXY_FORWARD_ERROR',       tr:'Yabancı kurum isteği iletilemedi',                   cat:'err',  catL:'Federasyon', action:'RADIUS proxy bağlantısını ve yönlendirme kurallarını kontrol edin.' },
+  { code:103, cn:'IAS_PROXY_RESPONSE_INVALID',    tr:'Yabancı kurum sunucusundan geçersiz yanıt',           cat:'err',  catL:'Federasyon', action:'Uzak NPS sürümünü ve yapılandırmasını kontrol edin.' },
+  { code:104, cn:'IAS_PROXY_MALFORMED_RESPONSE',  tr:'Yabancı kurum yanıtı bozuk',                         cat:'err',  catL:'Federasyon', action:'Paylaşımlı gizli anahtarın her iki tarafta aynı olduğunu doğrulayın.' },
+  { code:105, cn:'IAS_PROXY_TIMEOUT',             tr:'Yabancı kurum sunucusu yanıt vermedi',                cat:'err',  catL:'Federasyon', action:'Proxy zaman aşımı ve yeniden deneme değerlerini artırın.' },
+  { code:106, cn:'IAS_PROXY_NO_RESPONSE',         tr:'Yabancı kurum sunucusundan hiç yanıt gelmedi',        cat:'err',  catL:'Federasyon', action:'Yedek RADIUS sunucusu tanımlayın; birincil sunucunun durumunu kontrol edin.' },
+  { code:107, cn:'IAS_INVALID_ATTRIBUTE',         tr:'Erişim noktasından hatalı bağlantı bilgisi geldi',    cat:'err',  catL:'Cihaz',     action:'AP cihazının RADIUS özelliklerinin uyumlu olduğunu kontrol edin.' },
+  { code:108, cn:'IAS_PROXY_REJECT_QUIET',        tr:'Yabancı kurum sessizce reddetti',                     cat:'err',  catL:'Federasyon', action:'Uzak RADIUS sunucusunun erişilebilirliğini kontrol edin.' },
+  { code:109, cn:'IAS_PROXY_CHALLENGE_REJECTED',  tr:'Yabancı kurum kimlik doğrulama adımını reddetti',     cat:'err',  catL:'Federasyon', action:'Federation proxy yapılandırmasını kontrol edin.' },
+  { code:110, cn:'IAS_UNKNOWN_USER_NO_REALM',     tr:'Eksik kullanıcı adı formatı (kurum adı yazılmamış)',  cat:'warn', catL:'Kullanıcı', action:'Kullanıcının kullanici@kurum.edu.tr formatında giriş yapmasını sağlayın.' },
+  { code:111, cn:'IAS_AUTHENTICATION_REJECTED',   tr:'Yanlış şifre — EAP kimlik doğrulaması başarısız',     cat:'err',  catL:'Kullanıcı', action:'Kullanıcı şifresini sıfırlatın. MSCHAPv2 ayarlarını kontrol edin.' },
+  { code:112, cn:'IAS_REQUEST_NOT_FORWARDED',     tr:'Kullanıcının kurumu NPS üzerinden yönlendirilemiyor', cat:'err',  catL:'İlke',      action:'NPS Bağlantı İsteği İlkeleri\'nde realm yönlendirme kurallarını kontrol edin.' },
+  { code:113, cn:'IAS_CONNECTION_REQUEST_DISCARDED', tr:'Bağlantı isteği sistem tarafından iptal edildi',   cat:'warn', catL:'Sistem',    action:'NPS kapasitesini ve bağlantı ilkelerini kontrol edin.' },
+];
+
+const PACKET_TYPES = [
+  { pt:'1',  name:'Access-Request',     result:'REQUEST',   color:'#00d4ff', desc:'İstemci (AP/NAS) kullanıcı adına kimlik doğrulama isteği gönderiyor. Kullanıcı adı, şifre (EAP) ve NAS bilgilerini içerir.' },
+  { pt:'2',  name:'Access-Accept',      result:'SUCCESS',   color:'#00e57a', desc:'NPS kimliği doğruladı ve erişimi onayladı. Bağlantı parametrelerini (VLAN, timeout vb.) içerebilir.' },
+  { pt:'3',  name:'Access-Reject',      result:'FAILURE',   color:'#ff4c6a', desc:'NPS kimlik doğrulamayı veya yetkilendirmeyi reddetti. Reason-Code ile birlikte incelenmelidir.' },
+  { pt:'11', name:'Access-Challenge',   result:'CHALLENGE', color:'#a78bfa', desc:'NPS istemciden ek bilgi istiyor (EAP görüşmesi devam ediyor). Sağlıklı PEAP/EAP-TLS bağlantısında çok sayıda görülür.' },
+  { pt:'4',  name:'Accounting-Request', result:'',          color:'#ffc446', desc:'NAS, oturum başlangıcı/bitişi/güncellemesini raporluyor. Fatura ve denetim için kullanılır.' },
+  { pt:'5',  name:'Accounting-Response',result:'',          color:'#ffc446', desc:'NPS muhasebe isteğini onayladı.' },
+];
+
+/* Reason code lookup */
+const RC_MAP = {};
+NPS_REASON_CODES.forEach(r => { RC_MAP[String(r.code)] = r; });
+function rcInfo(code) { return RC_MAP[String(parseInt(code))] || { tr:'Bilinmeyen kod', cat:'', catL:'', action:'' }; }
+function rcPillClass(cat) { return {ok:'rc-ok',warn:'rc-warn',err:'rc-err',lock:'rc-lock'}[cat]||''; }
+
+/* ================================================================
+   STATE
+   ================================================================ */
+let sortCol='Zaman', sortDir=-1;
+let _tablePage=1, _tableTotal=0, _tablePages=0;
+const PER_PAGE=200;
+let _dashData=null;
+let _filterTimer=null;
+
+/* ================================================================
+   LOAD
+   ================================================================ */
+function setProgress(pct, step) {
+  document.getElementById('progressBar').style.width = pct + '%';
+  document.getElementById('progressPct').textContent = '%' + Math.round(pct);
+  if (step) document.getElementById('progressStep').textContent = step;
+}
+// setTimeout tabanlı gecikme — tarayıcıya yeniden çizim için gerçek zaman verir
+function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function loadData() {
+  document.getElementById('loadingMsg').style.display='flex';
+  document.getElementById('dashboard').style.display='none';
+  document.getElementById('errorMsg').style.display='none';
+  setProgress(0, 'Sunucuya bağlanılıyor…'); await wait(60);
+  try {
+    setProgress(15, 'Grafik verileri alınıyor…'); await wait(30);
+    const resp = await fetch('/api/charts');
+    if (!resp.ok) throw new Error('Sunucu yanıt vermedi: ' + resp.status);
+    _dashData = await resp.json();
+    setProgress(30, 'Veriler işleniyor…'); await wait(30);
+    await renderAll(_dashData);
+    document.getElementById('lastUpdate').textContent = 'Güncellendi: ' + _dashData.generated;
+    setProgress(100, 'Tamamlandı ✓'); await wait(200);
+    // Önce dashboard'u göster — canvas'lar gerçek boyutlarına kavuşsun
+    document.getElementById('loadingMsg').style.display='none';
+    document.getElementById('dashboard').style.display='block';
+    // Sonra canvas grafikleri yeniden çiz (offsetWidth artık doğru)
+    await wait(80);
+    renderTrend(_dashData.trend||[]);
+    renderHourly(_dashData.byHour||[]);
+  } catch(e) {
+    document.getElementById('loadingMsg').style.display='none';
+    const em = document.getElementById('errorMsg');
+    em.style.display='block';
+    em.innerHTML='⚠ Sunucuya bağlanılamadı.<br><br>'+
+      'Sunucuyu başlatın:<br>'+
+      '<code style="color:#ffc446">pwsh -ExecutionPolicy Bypass -File C:\\EduroamLogs\\Start-EduroamServer.ps1</code><br><br>'+
+      'Sonra <b>http://127.0.0.1:8080</b> adresini açın.<br><br>'+
+      '<small style="color:var(--muted)">'+e.message+'</small>';
+  }
+}
+
+async function renderAll(d) {
+  /* ─ İstatistikler ─ */
+  setProgress(20, 'İstatistikler hesaplanıyor…'); await wait(50);
+  const sm={};
+  (d.summary||[]).forEach(r=>sm[r.Result]=+r.Cnt);
+  const total=Object.values(sm).reduce((a,b)=>a+b,0);
+  document.getElementById('sToplam').textContent   =fmt(total);
+  document.getElementById('sDays').textContent     ='Son '+d.daysBack+' gün';
+  document.getElementById('daysLabel').textContent =d.daysBack;
+  document.getElementById('sSuccess').textContent  =fmt(sm.SUCCESS||0);
+  document.getElementById('sSuccessP').textContent =pct(sm.SUCCESS||0,total);
+  document.getElementById('sFailure').textContent  =fmt(sm.FAILURE||0);
+  document.getElementById('sFailureP').textContent =pct(sm.FAILURE||0,total);
+  document.getElementById('sChallenge').textContent=fmt(sm.CHALLENGE||0);
+  document.getElementById('sChallengeP').textContent=pct(sm.CHALLENGE||0,total);
+  document.getElementById('sUniqueUsers').textContent  =fmt(d.uniqueUsers  ||'—');
+  document.getElementById('sUniqueDevices').textContent=fmt(d.uniqueDevices||'—');
+
+  /* ─ Grafikler ─ */
+  setProgress(30, 'Trend grafikleri çiziliyor…');  await wait(50);
+  renderTrend(d.trend||[]);
+  renderHourly(d.byHour||[]);
+  setProgress(45, 'Bar grafikler çiziliyor…');     await wait(50);
+  renderBarChart('topFailChart',  d.topFail||[],   r=>r.Username+(r.Realm?'@'+r.Realm:''), r=>+r.Cnt,   '#ff4c6a');
+  renderBarChart('nasChart',      d.byNAS||[],     r=>r.NASIdentifier,                     r=>+r.Total, '#00d4ff');
+  renderBarChart('realmChart',    d.byRealm||[],   r=>r.Realm||'(boş)',                    r=>+r.Total, '#a78bfa');
+  renderBarChart('topUsersChart', d.topUsers||[],  r=>r.Username+(r.Realm?'@'+r.Realm:''), r=>+r.Cnt,   '#00e57a');
+  renderBarChart('reasonChart',   d.byReason||[],  r=>{
+    const i=rcInfo(r.ReasonCode);
+    return 'RC-'+r.ReasonCode+': '+(i.tr.length>28?i.tr.substring(0,28)+'…':i.tr);
+  }, r=>+r.Cnt, '#fb923c');
+
+  /* ─ Log tablosu ─ */
+  setProgress(60, 'Log kayıtları yükleniyor…');    await wait(50);
+  await loadTable(1);
+
+  /* ─ Analiz ─ */
+  setProgress(82, 'Analiz hesaplanıyor…');          await wait(50);
+  renderRing(sm,total);
+  renderCompare(d.trend||[]);
+  renderBarChart('realmFailChart', d.realmFail||d.byRealm||[], r=>r.Realm||'(boş)', r=>+(r.FailCnt||r.Total||0), cv('--red')||'#F87171');
+  // Hata nedenleri analizi — reason code + kullanıcı dostu açıklama
+  renderBarChart('reasonAnalysisChart', d.byReason||[], r=>{
+    const i=rcInfo(r.ReasonCode);
+    return i.tr.length>32 ? i.tr.substring(0,32)+'…' : i.tr;
+  }, r=>+r.Cnt, cv('--orange')||'#FFBA79');
+  renderInsights(d,sm,total);
+
+  /* ─ Referans ─ */
+  setProgress(93, 'Referans tabloları yükleniyor…'); await wait(50);
+  renderReference();
+}
+
+/* ================================================================
+   CHARTS
+   ================================================================ */
+function renderTrend(rows) {
+  const cnv=document.getElementById('trendChart');
+  if(!cnv)return;
+  const ctx=cnv.getContext('2d');
+  cnv.width=cnv.offsetWidth; cnv.height=145;
+  const W=cnv.width,H=cnv.height,pL=32,pB=20,pT=6;
+  const days=[...new Set(rows.map(r=>r.Gun))].sort();
+  const suc={},fail={},chal={};
+  rows.forEach(r=>{
+    if(r.Result==='SUCCESS')   suc[r.Gun] =+r.Cnt;
+    if(r.Result==='FAILURE')   fail[r.Gun]=+r.Cnt;
+    if(r.Result==='CHALLENGE') chal[r.Gun]=+r.Cnt;
+  });
+  const maxV=Math.max(...days.map(d=>(suc[d]||0)+(fail[d]||0)+(chal[d]||0)),1);
+  const bw=(W-pL)/Math.max(days.length,1);
+  ctx.clearRect(0,0,W,H);
+  ctx.strokeStyle=cv('--chart-grid'); ctx.lineWidth=1;
+  [.25,.5,.75,1].forEach(f=>{
+    const y=pT+(H-pB-pT)*(1-f);
+    ctx.beginPath();ctx.moveTo(pL,y);ctx.lineTo(W,y);ctx.stroke();
+    ctx.fillStyle=cv('--chart-label');ctx.font='9px Roboto Mono';
+    ctx.fillText(fmtK(maxV*f),0,y+3);
+  });
+  days.forEach((day,i)=>{
+    const x=pL+i*bw+bw*.1, bww=bw*.8, base=H-pB;
+    const s=suc[day]||0, f=fail[day]||0, c=chal[day]||0;
+    const sh=(s/maxV)*(H-pB-pT), fh=(f/maxV)*(H-pB-pT), ch=(c/maxV)*(H-pB-pT);
+    ctx.fillStyle=cv('--chart-success'); ctx.fillRect(x,base-sh,bww,sh);
+    ctx.fillStyle=cv('--chart-failure'); ctx.fillRect(x,base-sh-fh,bww,fh);
+    ctx.fillStyle=cv('--chart-purple');  ctx.fillRect(x,base-sh-fh-ch,bww,ch);
+    if(i%Math.ceil(days.length/7)===0){
+      ctx.fillStyle=cv('--chart-label');ctx.font='9px Roboto Mono';
+      ctx.fillText(day.slice(5),x,H-4);
+    }
+  });
+}
+
+function renderHourly(rows) {
+  const cnv=document.getElementById('hourlyChart');
+  if(!cnv)return;
+  const ctx=cnv.getContext('2d');
+  cnv.width=cnv.offsetWidth; cnv.height=115;
+  const W=cnv.width,H=cnv.height,pL=28,pB=16,pT=4;
+  const byH={};
+  rows.forEach(r=>{ byH[+r.Saat]=(byH[+r.Saat]||0)+(+r.Cnt); });
+  const maxV=Math.max(...Array.from({length:24},(_,h)=>byH[h]||0),1);
+  const bw=(W-pL)/24;
+  ctx.clearRect(0,0,W,H);
+  for(let h=0;h<24;h++){
+    const x=pL+h*bw+bw*.1, bww=bw*.8, v=byH[h]||0;
+    const vh=(v/maxV)*(H-pB-pT);
+    const alpha=0.2+0.8*(v/maxV);
+    const hColor=cv('--chart-accent'); ctx.fillStyle=hColor.startsWith('rgba')?hColor:`rgba(${hColor},${alpha})`;
+    ctx.fillRect(x,H-pB-vh,bww,vh);
+    if(h%6===0){
+      ctx.fillStyle=cv('--chart-label');ctx.font='9px Roboto Mono';
+      ctx.fillText(String(h).padStart(2,'0')+'h',x-2,H-2);
+    }
+  }
+}
+
+function renderBarChart(id,rows,labelFn,valFn,color){
+  const el=document.getElementById(id);
+  if(!el)return;
+  if(!rows||!rows.length){el.innerHTML='<div style="color:var(--muted);font-size:.73rem;padding:.5rem;">Veri yok</div>';return;}
+  const maxV=Math.max(...rows.map(valFn),1);
+  el.innerHTML=rows.slice(0,12).map(r=>{
+    const p=(valFn(r)/maxV*100).toFixed(0), lbl=labelFn(r);
+    return `<div class="bar-row"><div class="bar-label" title="${lbl}">${lbl}</div><div class="bar-track"><div class="bar-fill" style="width:${p}%;background:${color}"></div></div><div class="bar-val">${fmt(valFn(r))}</div></div>`;
+  }).join('');
+}
+
+function renderRing(sm,total){
+  const cnv=document.getElementById('ringCanvas');
+  if(!cnv)return;
+  const ctx=cnv.getContext('2d');
+  const cx=cnv.width/2,cy=cnv.height/2,r=58,lw=12;
+  ctx.clearRect(0,0,cnv.width,cnv.height);
+  const rate=total>0?(sm.SUCCESS||0)/total:0;
+  const failRate=total>0?(sm.FAILURE||0)/total:0;
+  ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.strokeStyle='rgba(30,45,69,1)';ctx.lineWidth=lw;ctx.stroke();
+  if(rate>0){
+    ctx.beginPath();ctx.arc(cx,cy,r,-Math.PI/2,-Math.PI/2+rate*Math.PI*2);
+    ctx.strokeStyle='#00e57a';ctx.lineWidth=lw;ctx.lineCap='round';ctx.stroke();
+  }
+  if(failRate>0){
+    ctx.beginPath();ctx.arc(cx,cy,r,-Math.PI/2+rate*Math.PI*2,-Math.PI/2+(rate+failRate)*Math.PI*2);
+    ctx.strokeStyle='#ff4c6a';ctx.lineWidth=lw;ctx.lineCap='butt';ctx.stroke();
+  }
+  document.getElementById('ringLabel').textContent=(rate*100).toFixed(1)+'%';
+  document.getElementById('ringSubLabel').textContent='başarı oranı';
+}
+
+function renderCompare(rows){
+  const cnv=document.getElementById('compareChart');
+  if(!cnv)return;
+  const ctx=cnv.getContext('2d');
+  cnv.width=cnv.offsetWidth; cnv.height=170;
+  const W=cnv.width,H=cnv.height,pL=32,pB=20,pT=6;
+  const days=[...new Set(rows.map(r=>r.Gun))].sort();
+  const suc={},fail={};
+  rows.forEach(r=>{if(r.Result==='SUCCESS')suc[r.Gun]=+r.Cnt;if(r.Result==='FAILURE')fail[r.Gun]=+r.Cnt;});
+  const maxV=Math.max(...days.map(d=>Math.max(suc[d]||0,fail[d]||0)),1);
+  const bw=(W-pL)/Math.max(days.length,1);
+  ctx.clearRect(0,0,W,H);
+  function drawLine(pts,color){
+    if(pts.length<2)return;
+    ctx.beginPath();ctx.moveTo(pts[0][0],pts[0][1]);
+    pts.slice(1).forEach(p=>ctx.lineTo(p[0],p[1]));
+    ctx.strokeStyle=color;ctx.lineWidth=2;ctx.lineJoin='round';ctx.stroke();
+    pts.forEach(p=>{ctx.beginPath();ctx.arc(p[0],p[1],3,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();});
+  }
+  const ps=[],pf=[];
+  days.forEach((d,i)=>{
+    const x=pL+i*bw+bw/2;
+    ps.push([x,H-pB-((suc[d]||0)/maxV)*(H-pB-pT)]);
+    pf.push([x,H-pB-((fail[d]||0)/maxV)*(H-pB-pT)]);
+    if(i%Math.ceil(days.length/7)===0){ctx.fillStyle=cv('--chart-label');ctx.font='9px Roboto Mono';ctx.fillText(d.slice(5),x-8,H-3);}
+  });
+  drawLine(ps,'#00e57a');drawLine(pf,'#ff4c6a');
+  ctx.fillStyle='#00e57a';ctx.font='10px JetBrains Mono';ctx.fillText('─ Başarılı',pL,pT+10);
+  ctx.fillStyle='#ff4c6a';ctx.fillText('─ Başarısız',pL+80,pT+10);
+}
+
+function renderDeviceSummary(data){
+  const devs={};
+  data.forEach(r=>{
+    if(!r.CallingStationID)return;
+    if(!devs[r.CallingStationID])devs[r.CallingStationID]={s:0,f:0};
+    if(r.Result==='SUCCESS')devs[r.CallingStationID].s++;
+    if(r.Result==='FAILURE')devs[r.CallingStationID].f++;
+  });
+  const total=Object.keys(devs).length;
+  const onlyFail=Object.values(devs).filter(d=>d.s===0&&d.f>0).length;
+  const onlySucc=Object.values(devs).filter(d=>d.f===0&&d.s>0).length;
+  const mixed=total-onlyFail-onlySucc;
+  document.getElementById('deviceSummary').innerHTML=`
+    <div style="margin-top:.5rem;display:flex;flex-direction:column;gap:.55rem;">
+      <div class="ri-row"><span class="ri-dot" style="background:var(--green)"></span><span class="ri-label">Yalnızca başarılı bağlanan</span><span class="ri-val">${fmt(onlySucc)}</span></div>
+      <div class="ri-row"><span class="ri-dot" style="background:var(--red)"></span><span class="ri-label">Yalnızca başarısız (sorunlu)</span><span class="ri-val">${fmt(onlyFail)}</span></div>
+      <div class="ri-row"><span class="ri-dot" style="background:var(--yellow)"></span><span class="ri-label">Karma durum</span><span class="ri-val">${fmt(mixed)}</span></div>
+      <div class="ri-row"><span class="ri-dot" style="background:var(--accent)"></span><span class="ri-label">Toplam benzersiz cihaz</span><span class="ri-val">${fmt(total)}</span></div>
+    </div>`;
+}
+
+function renderInsights(d,sm,total){
+  const lines=[];
+  const failPct=total>0?(sm.FAILURE||0)/total*100:0;
+  const succPct=total>0?(sm.SUCCESS||0)/total*100:0;
+
+  // Genel durum
+  if(failPct>20)      lines.push(`⚠️ <b>Sistem Uyarısı:</b> Son 7 günde başarısızlık oranı <b style="color:var(--red)">${failPct.toFixed(1)}%</b> — normalin üzerinde (beklenen: &lt;10%). Kullanıcı şifre sorunları veya hesap kilitleri yoğun olabilir.`);
+  else if(failPct<5)  lines.push(`✅ <b>Sistem Sağlıklı:</b> Başarısızlık oranı <b style="color:var(--green)">${failPct.toFixed(1)}%</b> — son derece iyi. ${fmt(sm.SUCCESS||0)} başarılı giriş tamamlandı.`);
+  else                lines.push(`✅ <b>Normal Durum:</b> Başarısızlık oranı <b style="color:var(--yellow)">${failPct.toFixed(1)}%</b> — kabul edilebilir sınırlar içinde.`);
+
+  // En sık hata nedeni
+  if(d.byReason&&d.byReason.length>0){
+    const r=d.byReason[0], info=rcInfo(r.ReasonCode);
+    const pctR=total>0?(+r.Cnt/total*100).toFixed(1):0;
+    lines.push(`📊 <b>En Sık Hata:</b> "${info.tr}" (RC-${r.ReasonCode}) — ${fmt(+r.Cnt)} başarısız giriş (%${pctR}). <span style="color:var(--muted)">Öneri: ${info.action}</span>`);
+    if(d.byReason.length>1){
+      const r2=d.byReason[1], info2=rcInfo(r2.ReasonCode);
+      lines.push(`📊 <b>2. Sık Hata:</b> "${info2.tr}" (RC-${r2.ReasonCode}) — ${fmt(+r2.Cnt)} giriş.`);
+    }
+  }
+
+  // Bugün çok hata yapan kullanıcı
+  if(d.topFail&&d.topFail.length>0){
+    const t=d.topFail[0];
+    const uStr=t.Username+(t.Realm?'@'+t.Realm:'');
+    if(+t.Cnt>=5) lines.push(`🔴 <b>Dikkat — Sorunlu Kullanıcı:</b> <b style="color:var(--red)">${uStr}</b> bugün ${fmt(+t.Cnt)} kez başarısız giriş yaptı. Hesap kilidi veya şifre sorunu olabilir.`);
+  }
+
+  // Yoğun AP
+  if(d.byNAS&&d.byNAS.length>0){
+    const n=d.byNAS[0];
+    const apFail=+n.Total>0?(+n.Fail/+n.Total*100).toFixed(0):0;
+    lines.push(`📡 <b>En Yoğun Erişim Noktası:</b> ${n.NASIdentifier} — ${fmt(+n.Total)} bağlantı isteği, %${apFail} başarısızlık.`);
+    // Sorunlu AP tespiti
+    const badAP=d.byNAS.find(n=>+n.Total>50&&(+n.Fail/+n.Total)>0.3);
+    if(badAP) lines.push(`⚠️ <b>Sorunlu Erişim Noktası:</b> ${badAP.NASIdentifier} — başarısızlık oranı %${(+badAP.Fail/+badAP.Total*100).toFixed(0)} ile normalin üzerinde. AP yapılandırması kontrol edilmeli.`);
+  }
+
+  // Dış kurum trafiği
+  if(d.byRealm&&d.byRealm.length>0){
+    const externalRealms=d.byRealm.filter(r=>r.Realm&&!r.Realm.toLowerCase().includes('kastamonu'));
+    if(externalRealms.length>0){
+      const extTotal=externalRealms.reduce((a,r)=>a+(+r.Total||0),0);
+      lines.push(`🌐 <b>Eduroam Federasyonu:</b> ${externalRealms.length} farklı kurumdan toplam ${fmt(extTotal)} ziyaretçi bağlantı isteği (normal durum).`);
+    }
+    // En büyük kurum
+    const top=d.byRealm[0];
+    if(top) lines.push(`🏛 <b>En Aktif Kurum:</b> ${top.Realm||'(boş)'} — ${fmt(+top.SuccCnt||0)} başarılı, ${fmt(+top.FailCnt||0)} başarısız giriş.`);
+  }
+
+  if(!lines.length) lines.push('ℹ️ Belirgin anomali tespit edilmedi. Sistem normal çalışıyor.');
+  document.getElementById('insights').innerHTML='<div style="display:flex;flex-direction:column;gap:.6rem">'+
+    lines.map(l=>`<div style="padding:.6rem .85rem;background:var(--bg3);border-radius:var(--shape-sm);border-left:3px solid var(--accent);line-height:1.7">${l}</div>`).join('')+
+    '</div>';
+}
+
+function renderReference(){
+  // Event IDs
+  document.getElementById('eventIdTableBody').innerHTML=NPS_EVENT_IDS.map(e=>`
+    <tr>
+      <td><span class="badge badge-${e.id}">${e.id}</span></td>
+      <td><span style="color:${e.color};font-size:.68rem;font-weight:700">${e.label}</span></td>
+      <td>${e.desc}<br><small style="color:var(--muted);font-size:.66rem">${e.detail}</small></td>
+    </tr>`).join('');
+
+  // Reason Codes
+  document.getElementById('reasonCodeBody').innerHTML=NPS_REASON_CODES.map(r=>{
+    const catColor={ok:'var(--green)',warn:'var(--yellow)',err:'var(--red)',lock:'var(--orange)'}[r.cat]||'var(--muted)';
+    return `<tr class="cat-${r.cat||''}"
+      <td><span class="reason-pill rc-${r.cat}">${r.code}</span></td>
+      <td style="color:var(--yellow);font-size:.66rem">${r.cn}</td>
+      <td>${r.tr}</td>
+      <td><span style="color:${catColor};font-size:.66rem">${r.catL}</span></td>
+      <td style="color:var(--muted);font-size:.67rem">${r.action}</td>
+    </tr>`;
+  }).join('');
+
+  // Packet Types
+  document.getElementById('packetTypeBody').innerHTML=PACKET_TYPES.map(p=>`
+    <tr>
+      <td><b style="color:${p.color};font-size:.9rem">${p.pt}</b></td>
+      <td style="font-weight:600">${p.name}</td>
+      <td>${p.result?`<span class="badge badge-${p.result}">${p.result}</span>`:'<span style="color:var(--muted)">—</span>'}</td>
+      <td style="color:var(--muted)">${p.desc}</td>
+    </tr>`).join('');
+}
+
+/* ================================================================
+   FILTERS & TABLE
+   ================================================================ */
+/* ── Zaman alanını ISO yyyy-mm-dd formatına çevir ──────────────────────────
+   Access CStr(TimeCreated) farklı locale'larda farklı döner:
+     - Türkçe: "22.04.2026 10:30:45"  (dd.MM.yyyy)
+     - İngilizce: "4/22/2026 10:30:45 AM"  (M/d/yyyy)
+   Her iki formatı da destekliyoruz.                                       */
+function zamanToISO(zaman) {
+  if (!zaman) return '';
+  const s = String(zaman).trim();
+  // Format 1: dd.MM.yyyy HH:mm:ss  →  Türkçe locale
+  const m1 = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})/);
+  if (m1) return `${m1[3]}-${m1[2].padStart(2,'0')}-${m1[1].padStart(2,'0')}`;
+  // Format 2: M/d/yyyy ...  →  İngilizce locale
+  const m2 = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (m2) return `${m2[3]}-${m2[1].padStart(2,'0')}-${m2[2].padStart(2,'0')}`;
+  // Format 3: yyyy-MM-dd (zaten ISO)
+  const m3 = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m3) return `${m3[1]}-${m3[2]}-${m3[3]}`;
+  // Fallback: Date nesnesiyle dene
+  const d = new Date(s);
+  if (!isNaN(d.getTime())) return d.toISOString().substring(0,10);
+  return '';
+}
+
+function populateReasonFilter(){
+  // Reason code seçeneklerini NPS_REASON_CODES'dan doldur
+  const sel=document.getElementById('fReasonCode');
+  while(sel.options.length>1) sel.remove(1);
+  NPS_REASON_CODES.forEach(r=>{
+    const opt=document.createElement('option');
+    opt.value=String(r.code);
+    opt.textContent=`${r.code} — ${r.tr.substring(0,30)}`;
+    sel.appendChild(opt);
+  });
+}
+
+function getFilterParams(pg=1){
+  const p = new URLSearchParams();
+  p.set('page', pg);
+  p.set('limit', PER_PAGE);
+  const df  = document.getElementById('fDateFrom').value;
+  const dt  = document.getElementById('fDateTo').value;
+  const u   = document.getElementById('fUser').value.trim();
+  const re  = document.getElementById('fRealm').value.trim();
+  const ip  = document.getElementById('fIP').value.trim();
+  const mac = document.getElementById('fMAC').value.trim();
+  const nas = document.getElementById('fNAS').value.trim();
+  const rs  = document.getElementById('fResult').value;
+  const rc  = document.getElementById('fReasonCode').value;
+  if(df)  p.set('from', df);
+  if(dt)  p.set('to',   dt);
+  if(u)   p.set('username', u);
+  if(re)  p.set('realm', re);
+  if(ip)  p.set('ip', ip);
+  if(mac) p.set('mac', mac);
+  if(nas) p.set('nas', nas);
+  if(rs)  p.set('result', rs);
+  if(rc)  p.set('rc', rc);
+  if(sortCol) p.set('sort', sortCol);
+  p.set('dir', sortDir === 1 ? 'asc' : 'desc');
+  return p.toString();
+}
+
+async function loadTable(pg=1){
+  _tablePage = pg;
+  const tbody = document.getElementById('logTable');
+  tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:1rem">Yükleniyor…</td></tr>';
+  try {
+    const resp = await fetch('/api/recent?' + getFilterParams(pg));
+    const json = await resp.json();
+    _tableTotal = json.total || 0;
+    _tablePages = json.pages || 0;
+    renderTableRows(json.data || []);
+    const el = document.getElementById('recordCount');
+    if(el) el.textContent = fmt(_tableTotal) + ' kayıt';
+    const tl = document.getElementById('totalLoaded');
+    if(tl) tl.textContent = 'Sayfa ' + pg + ' / ' + _tablePages;
+    renderPagination();
+  } catch(e) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--red);padding:1rem">Veri alınamadı: '+e.message+'</td></tr>';
+  }
+}
+
+function applyFilters(){
+  clearTimeout(_filterTimer);
+  _filterTimer = setTimeout(()=>loadTable(1), 300);
+}
+
+const RESULT_ICON = { SUCCESS:'✓', FAILURE:'✗', CHALLENGE:'⟳', REQUEST:'→' };
+
+function renderTableRows(rows){
+  if(!rows||!rows.length){
+    document.getElementById('logTable').innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:1.5rem">Kayıt bulunamadı</td></tr>';
+    return;
+  }
+  document.getElementById('logTable').innerHTML=rows.map(r=>{
+    const info   = rcInfo(r.ReasonCode);
+    const cls    = rcPillClass(info.cat);
+    const catColor = {ok:'var(--green)',warn:'var(--yellow)',err:'var(--red)',lock:'var(--orange)'}[info.cat]||'var(--muted)';
+    const rc     = (r.ReasonCode!==undefined&&r.ReasonCode!==null) ? r.ReasonCode : '—';
+    const icon     = RESULT_ICON[r.Result]||'';
+    const zamanStr = formatZaman(r.Zaman||'');
+    const emptyUser = `<span style="color:var(--muted)">—</span>`;
+    const emptyNAS  = `<span style="color:var(--muted)">—</span>`;
+    return `<tr class="row-${r.Result||''}">
+      <td style="color:var(--muted);font-size:.72rem;white-space:nowrap" title="${r.Zaman||''}">${zamanStr}</td>
+      <td style="font-weight:600;color:var(--text)" title="${r.Username||''}">${r.Username||emptyUser}</td>
+      <td style="color:var(--purple)">${r.Realm||emptyUser}</td>
+      <td style="color:var(--muted)">${r.ClientIP||'—'}</td>
+      <td title="${r.NASIdentifier||''}" style="color:var(--accent)">${r.NASIdentifier||emptyNAS}</td>
+      <td style="color:var(--muted);font-size:.7rem" title="${r.CallingStationID||''}">${r.CallingStationID||'—'}</td>
+      <td><span class="badge badge-${r.Result||''}">${icon} ${r.Result||''}</span></td>
+      <td><span class="reason-pill ${cls}">${rc}</span></td>
+      <td title="${info.action}" style="color:${catColor};font-size:.72rem;max-width:220px;white-space:normal;line-height:1.3">${info.tr}</td>
+    </tr>`;
+  }).join('');
+}
+
+// Zaman string'ini okunabilir formata çevir: "22.04.2026 10:30:45" veya "4/22/2026 10:30:45 AM"
+function formatZaman(zaman){
+  if(!zaman) return '—';
+  const s=String(zaman).trim();
+  // dd.MM.yyyy HH:mm:ss
+  const m1=s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})/);
+  if(m1) return `${m1[3]}-${m1[2].padStart(2,'0')}-${m1[1].padStart(2,'0')} ${m1[4].padStart(2,'0')}:${m1[5]}:${m1[6]}`;
+  // M/d/yyyy H:mm:ss AM/PM
+  const m2=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})/);
+  if(m2){
+    let h=parseInt(m2[4]);
+    if(/PM/i.test(s)&&h<12) h+=12;
+    if(/AM/i.test(s)&&h===12) h=0;
+    return `${m2[3]}-${m2[1].padStart(2,'0')}-${m2[2].padStart(2,'0')} ${String(h).padStart(2,'0')}:${m2[5]}:${m2[6]}`;
+  }
+  return s.substring(0,19);
+}
+
+function renderPagination(){
+  const pages=_tablePages;
+  if(pages<=1){document.getElementById('pagination').innerHTML='';return;}
+  const cur=_tablePage;
+  const all=[1];
+  if(cur>3)all.push('…');
+  for(let p=Math.max(2,cur-1);p<=Math.min(pages-1,cur+1);p++)all.push(p);
+  if(cur<pages-2)all.push('…');
+  if(pages>1)all.push(pages);
+  document.getElementById('pagination').innerHTML=all.map(p=>
+    p==='…'?`<button disabled>…</button>`:
+    `<button class="${p===cur?'active':''}" onclick="goPage(${p})">${p}</button>`
+  ).join('');
+}
+
+function goPage(p){loadTable(p);window.scrollTo(0,0);}
+function sortBy(col){
+  if(sortCol===col) sortDir*=-1; else{sortCol=col;sortDir=-1;}
+  // Aktif sütun vurgula
+  document.querySelectorAll('thead th').forEach(th=>th.style.color='');
+  const th=document.getElementById('th-'+col);
+  if(th){th.style.color='var(--accent)';th.textContent=th.textContent.replace(/[▲▼]/,'')+(sortDir===1?' ▲':' ▼');}
+  loadTable(1);
+}
+function clearFilters(){
+  ['fUser','fRealm','fIP','fMAC','fNAS','fDateFrom','fDateTo'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('fResult').value='';
+  document.getElementById('fReasonCode').value='';
+  loadTable(1);
+}
+
+/* ================================================================
+   TABS
+   ================================================================ */
+function switchTab(name){
+  const tabs=['overview','logs','analysis','reference'];
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',tabs[i]===name));
+  document.querySelectorAll('.tab-content').forEach(c=>c.classList.toggle('active',c.id==='tab-'+name));
+  // Tab gorunur hale geldikten SONRA ciz (offsetWidth dogru olsun)
+  if(name==='overview'&&_dashData) setTimeout(()=>{renderTrend(_dashData.trend||[]);renderHourly(_dashData.byHour||[]);},100);
+  if(name==='analysis'&&_dashData) setTimeout(()=>renderCompare(_dashData.trend||[]),100);
+}
+
+/* ================================================================
+   CSV
+   ================================================================ */
+async function exportCSV(){
+  try {
+    const resp = await fetch('/api/recent?' + getFilterParams(1).replace('limit=200','limit=10000'));
+    const json = await resp.json();
+    const rows = json.data || [];
+    const hdrs = ['Zaman','Kullanici','Realm','ClientIP','NAS','MAC','Sonuc','ReasonCode','ReasonAciklamasi'];
+    const lines = rows.map(r=>{
+      const i=rcInfo(r.ReasonCode);
+      return [r.Zaman,r.Username,r.Realm,r.ClientIP,r.NASIdentifier,r.CallingStationID,r.Result,r.ReasonCode,i.tr]
+        .map(v=>`"${(v||'').toString().replace(/"/g,'""')}"`).join(',');
+    });
+    const csv='﻿'+[hdrs.join(','),...lines].join('\r\n');
+    const a=document.createElement('a');
+    a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+    a.download='eduroam_logs_'+new Date().toISOString().slice(0,10)+'.csv';
+    a.click();
+  } catch(e) { alert('CSV indirilemedi: '+e.message); }
+}
+
+/* ================================================================
+   UTILS
+   ================================================================ */
+function fmt(n){ return Number(n).toLocaleString('tr-TR'); }
+function fmtK(n){ if(n>=1e6)return(n/1e6).toFixed(1)+'M';if(n>=1e3)return(n/1e3).toFixed(0)+'K';return Math.round(n)+''; }
+function pct(a,b){ return b>0?'%'+((a/b)*100).toFixed(1):'%0'; }
+
+['fDateFrom','fDateTo','fUser','fRealm','fIP','fMAC','fNAS','fResult','fReasonCode'].forEach(id=>{
+  const el=document.getElementById(id);
+  if(el)el.addEventListener('input', applyFilters);
+  if(el)el.addEventListener('change',applyFilters);
+});
+populateReasonFilter();
+/* ── Tema Toggle ─────────────────────────────────────────────────────────── */
+function toggleTheme(){
+  const root = document.documentElement;
+  const isLight = root.getAttribute('data-theme') === 'light';
+  root.setAttribute('data-theme', isLight ? 'dark' : 'light');
+  document.getElementById('themeToggle').textContent = isLight ? '🌙' : '☀️';
+  localStorage.setItem('eduroam-theme', isLight ? 'dark' : 'light');
+  // Canvas grafiklerini yeniden çiz (tema renklerini alsın)
+  if(_dashData){ renderTrend(_dashData.trend||[]); renderHourly(_dashData.byHour||[]); }
+}
+// Kaydedilen temayı uygula
+(function(){
+  const saved = localStorage.getItem('eduroam-theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', saved);
+  document.addEventListener('DOMContentLoaded', ()=>{
+    const btn = document.getElementById('themeToggle');
+    if(btn) btn.textContent = saved === 'light' ? '☀️' : '🌙';
+  });
+})();
+
+window.addEventListener('load',loadData);
+window.addEventListener('resize',()=>{
+  if(_dashData){renderTrend(_dashData.trend||[]);renderHourly(_dashData.byHour||[]);}
+});
+</script>
+</body>
+</html>
