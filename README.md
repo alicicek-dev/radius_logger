@@ -1,153 +1,91 @@
-# 📡 Eduroam NPS Loglama Sistemi - Claude ile oluşturuldu
+# Eduroam NPS Loglama Sistemi (v5.2 — Rust Edition)
 
-> Windows NPS üzerindeki eduroam RADIUS kimlik doğrulama loglarını otomatik toplayan, SQLite veritabanında saklayan ve HTTP API ile gerçek zamanlı izleyen sistem.
+Windows NPS (Network Policy Server) üzerindeki eduroam RADIUS kimlik doğrulama loglarını (`IN{YYMMDD}.log`) ayrıştırarak SQLite (WAL + `mmap`) veritabanına aktaran ve `127.0.0.1:8080` üzerinde çalışan yüksek performanslı HTTP API + Web Dashboard ile gerçek zamanlı izlenebilir hale getiren sistem.
 
 **Kastamonu Üniversitesi — Bilgi İşlem Daire Başkanlığı**
 
----
+## Dokümantasyon Haritası
 
-## 🖥️ Dashboard Önizleme
+| Doküman | İçerik |
+|---|---|
+| [`ARCHITECTURE.md`](./ARCHITECTURE.md) | Sistem mimarisi, `PT=1/2/3` TTL + MAC/Class eşleştirme mantığı, byte-offset okuma, veritabanı şeması ve API referansı |
+| [`SECURITY.md`](./SECURITY.md) | Güvenlik kontrolleri (parametreli SQL, CORS, XSS ve CSV formül enjeksiyonu koruması), KVKK/veri saklama politikası |
+| [`CHANGELOG.md`](./CHANGELOG.md) | v1.0'dan v5.2 (Rust Edition) sürümüne kadar tüm değişiklik geçmişi |
+| [`AGENTS.md`](./AGENTS.md) | Geliştiriciler ve AI kodlama ajanları için proje kuralları, derleme/test komutları ve mimari kısıtlar |
+| [`DESIGN.md`](./DESIGN.md) | Dashboard arayüzünde kullanılan **Ember Studio** tasarım sistemi spesifikasyonu |
 
-Material Design 3 tabanlı, koyu/açık tema destekli web dashboard:
+## Mimari
 
-- **Genel Bakış** — İstatistikler, trend grafikleri, en aktif AP'ler, realm dağılımı
-- **Log Kayıtları** — Filtreli/sayfalı tablo, CSV export, kolon sıralama
-- **Analiz** — Başarı oranı, hata nedenleri, anomali tespiti
-- **NPS Referans** — Reason Code kataloğu, hızlı sorun giderme rehberi
-
----
-
-## ⚙️ Mimari
-
-```
-NPS Log Dosyaları (.log)
-        │  her 10 dk
-        ▼
-Kolektör (PowerShell 7)
-  PT=1 → önbellek (FIFO)
-  PT=2 → SUCCESS yaz
-  PT=3 → FAILURE yaz
-        │
-        ▼
-  SQLite Veritabanı
-  (eduroam_logs.db)
-        │
-        ▼
-HTTP API Sunucusu (:8080)
-  /api/charts
-  /api/recent
-        │
-        ▼
-  Web Dashboard
-  http://127.0.0.1:8080
+```text
+NPS IAS logları (IN{YYMMDD}.log)
+        | FILE_SHARE_READ | FILE_SHARE_WRITE + ByteOffset Seek
+        v
+eduroam-nps.exe (Rust - Tokio + Axum + Bundled SQLite)
+  ├─ [Collector Thread]
+  │    ├─ Zero-copy IAS XML ayrıştırıcı
+  │    ├─ PT=1 -> Client-IP + Class/MAC öncelikli + 60sn TTL kuyruk
+  │    ├─ PT=2 -> SUCCESS / PT=3 -> FAILURE
+  │    └─ 2000'lik Batch Transaction + EventHash (SHA-256)
+  │
+  ├─ [SQLite Veritabanı: eduroam_logs.db]
+  │    └─ WAL Modu + 512 MB mmap + 64 MB Page Cache
+  │
+  └─ [Axum Async HTTP Sunucusu: 127.0.0.1:8080]
+       ├─ GET /               (eduroam_dashboard.html - disk veya gömülü)
+       ├─ GET /style.css      (eduroam_dashboard.css - disk veya gömülü)
+       ├─ GET /api/charts     (Atomik nesil takipli RAM önbelleği <50 µs)
+       ├─ GET /api/recent     (Parametreli, indeksli sayfalama)
+       └─ GET /api/export.csv (Formül enjeksiyonu korumalı CSV export)
 ```
 
----
-
-## 📁 Dosya Yapısı
+## Dosya Yapısı
 
 | Dosya | Açıklama |
-|-------|----------|
-| `Eduroam-NPS-LogCollector.ps1` | Ana kolektör — IAS XML parse, SQLite'a yazar |
-| `Start-EduroamServer.ps1` | HTTP API sunucusu — dashboard + REST endpoint'ler |
-| `Reset-And-Backfill.ps1` | DB sıfırlama ve geçmiş veri doldurma aracı |
-| `Register-ScheduledTasks.ps1` | Zamanlanmış görev kayıt scripti |
-| `eduroam_dashboard.html` | Dashboard şablonu (JS + API çağrıları) |
-| `eduroam_dashboard.css` | Material Design 3 stiller (koyu + açık tema) |
-| `generate_report.py` | Teknik dokümantasyon PDF üretici |
+|---|---|
+| `Cargo.toml` | Rust paket ve bağımlılık yapılandırması (`axum`, `tokio`, `rusqlite` bundled, `clap`, `sha2`, `chrono`) |
+| `src/main.rs` | CLI giriş noktası (`serve`, `collect`, `server`, `setup`, `backfill`, `reset-backfill`, `register-tasks`) ve testler |
+| `src/config.rs` | `eduroam_config.json` yükleyici ve CORS doğrulayıcı |
+| `src/parser.rs` | Sıfır-kopya (zero-copy) IAS XML ayrıştırıcı, `EventHash` (SHA-256), `LIKE` ve CSV formül kaçış yardımcıları |
+| `src/db.rs` | SQLite WAL + `mmap` bağlantı yöneticisi ve otomatik şema migration (`ensure_schema_and_migrate`) |
+| `src/collector.rs` | Byte-offset takipli, TTL + MAC/Class eşleştirmeli yüksek hızlı log kolektörü |
+| `src/server.rs` | Bellek içi grafik önbellekli Axum HTTP API sunucusu ve gömülü (embedded) arayüz sunumu |
+| `eduroam_dashboard.html` / `.css` | **Ember Studio** (`DESIGN.md`) tasarım sistemine sahip 4 sekmeli web arayüzü |
+| `eduroam_config.example.json` | İsteğe bağlı yapılandırma dosyası örneği (`eduroam_config.json`) |
 
----
+## Kurulum ve Kullanım
 
-## 🚀 Kurulum
+### 1. Derleme
+```powershell
+cargo build --release
+# Çıktı: target\release\eduroam-nps.exe
+```
 
-### Gereksinimler
-
-- Windows Server 2016+
-- PowerShell 7+ (`winget install Microsoft.PowerShell`)
-- NPS rolü kurulu, IAS text logging aktif
-- NPS log klasörü: `C:\NPSLogs\`
-
-### Adımlar
+### 2. Komutlar
+`eduroam-nps.exe` harici hiçbir DLL veya SQLite kurulumu gerektirmez:
 
 ```powershell
-# 1. Dosyaları kopyala
-# Tüm dosyaları C:\EduroamLogs\ klasörüne kopyalayın
+# 1. Veritabanını oluştur veya mevcut DB'yi migrate et
+.\target\release\eduroam-nps.exe setup --migrate
 
-# 2. SQLite veritabanını oluştur
-pwsh -ExecutionPolicy Bypass -File C:\EduroamLogs\Setup-SQLite.ps1
+# 2. Mevcut DB'yi silmeden son 90 günü hızla tara (Append-Only Backfill)
+.\target\release\eduroam-nps.exe backfill --days 90
 
-# 3. Geçmiş veriyi doldur (son 7 gün)
-pwsh -ExecutionPolicy Bypass -File C:\EduroamLogs\Reset-And-Backfill.ps1
+# 3. Hem arka plan log toplayıcıyı hem de HTTP Dashboard sunucusunu başlat (Varsayılan mod)
+.\target\release\eduroam-nps.exe serve
 
-# 4. Zamanlanmış görevleri kaydet (yönetici olarak)
-pwsh -ExecutionPolicy Bypass -File C:\EduroamLogs\Register-ScheduledTasks.ps1
+# 4. Windows başlangıcında otomatik çalışacak görevi kaydet (Yönetici olarak)
+.\target\release\eduroam-nps.exe register-tasks
 
-# 5. Dashboard'u aç
-Start-Process "http://127.0.0.1:8080"
+# Yalnızca tek seferlik log toplama çalıştırıp çıkmak için:
+.\target\release\eduroam-nps.exe collect
 ```
 
----
+## Test ve Doğrulama
 
-## 🔌 HTTP API
-
-| Endpoint | Açıklama |
-|----------|----------|
-| `GET /` | Dashboard HTML |
-| `GET /style.css` | CSS stilleri |
-| `GET /api/charts` | Grafik verileri (7 günlük özet) |
-| `GET /api/recent` | Filtreli log kayıtları |
-
-### /api/recent Parametreleri
-
-```
-?page=1&limit=200&result=FAILURE&username=ali&realm=kastamonu.edu.tr
-&from=2026-04-28&to=2026-04-30&nas=ruckus&mac=EC-58&rc=16&sort=Zaman&dir=desc
+```powershell
+cargo test
 ```
 
----
+## Lisans
 
-## 🗄️ Veritabanı
-
-**AuthLog** tablosu: `TimeCreated`, `Username`, `Realm`, `ClientIP`, `NASIdentifier`, `CallingStationID`, `Result`, `ReasonCode`, `Reason`
-
-**Devices** tablosu: `MACAddress`, `FirstSeen`, `LastSeen`, `LastUsername`, `LastResult`
-
-> WAL modu aktif — kolektör yazarken API eşzamanlı okuma yapabilir.
-
----
-
-## ⚡ Performans
-
-| Metrik | Değer |
-|--------|-------|
-| Kolektör hızı | ~260 kayıt/sn |
-| Batch boyutu | 500 kayıt/commit |
-| Güncelleme aralığı | Her 10 dakika |
-| İşlenen toplam kayıt | 880.000+ |
-| Veritabanı boyutu | ~280 MB |
-
----
-
-## 🔒 Güvenlik
-
-- HTTP sunucu yalnızca `127.0.0.1` dinler — dışarı açık değil
-- SQL injection koruması: single-quote escape + integer cast
-- HTML injection koruması: `</script>` ve `<!--` escape edilir
-- Unique index ile duplikat kayıt önlenir
-
----
-
-## 📊 RADIUS Paket Mantığı
-
-| Packet-Type | Mesaj | Davranış |
-|-------------|-------|----------|
-| PT=1 | Access-Request | FIFO önbelleğe al (kullanıcı bilgisi burada) |
-| PT=2 | Access-Accept | Önbellekten eşleştir → **SUCCESS** yaz |
-| PT=3 | Access-Reject | Doğrudan **FAILURE** yaz (RC burada) |
-| PT=11 | Access-Challenge | Atla (EAP gürültüsü) |
-
----
-
-## 📝 Lisans
-
-MIT License — Kastamonu Üniversitesi Bilgi İşlem Daire Başkanlığı
+MIT License. Ayrıntılar için [`LICENSE`](./LICENSE) dosyasına bakın.

@@ -1,0 +1,28 @@
+{
+  "paths": {
+    "logDir": "C:\\NPSLogs",
+    "dataDir": "C:\\EduroamLogs",
+    "dbPath": "C:\\EduroamLogs\\eduroam_logs.db",
+    "stateFile": "C:\\EduroamLogs\\last_run.txt",
+    "errorLog": "C:\\EduroamLogs\\collector_errors.log"
+  },
+  "server": {
+    "host": "127.0.0.1",
+    "port": 8080,
+    "daysBack": 7,
+    "enableCors": false,
+    "allowedOrigins": [],
+    "defaultPageLimit": 200,
+    "maxPageLimit": 1000,
+    "maxExportRows": 10000
+  },
+  "collector": {
+    "batchSize": 2000,
+    "retentionDays": 180,
+    "pendingQueuePerClient": 50,
+    "collectChallenges": false,
+    "maxLogMB": 5,
+    "pollIntervalSeconds": 30,
+    "pendingTtlSeconds": 60
+  }
+}

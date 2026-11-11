@@ -7,15 +7,9 @@
 last_run.txt
 *.log
 *.old.log
+eduroam_config.json
+.ctx/
 
-# Export çıktıları
-dashboard.json
-eduroam_dashboard_live.html
-
-# Python
-__pycache__/
-*.pyc
-*.pyo
-
-# Üretilen PDF (kaynak HTML zaten var)
-Eduroam_NPS_Sistem_Dokumantasyonu.pdf
+# Rust derleme çıktıları
+/target/
+/dist/
