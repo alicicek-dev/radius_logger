@@ -760,7 +760,7 @@ async fn handle_recent(
     let pages = if total == 0 {
         0
     } else {
-        (total + rq.limit - 1) / rq.limit
+        total.div_ceil(rq.limit)
     };
 
     let payload = RecentResponse {
@@ -837,4 +837,186 @@ async fn handle_not_found(
         None,
         serde_json::to_vec(&body).unwrap_or_default(),
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::db::ensure_schema_and_migrate;
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    use tokio::net::{TcpListener, TcpStream};
+
+    async fn http_get(
+        addr: std::net::SocketAddr,
+        path_and_query: &str,
+        origin: Option<&str>,
+    ) -> String {
+        let mut stream = TcpStream::connect(addr).await.unwrap();
+        let origin_hdr = origin
+            .map(|o| format!("Origin: {}\r\n", o))
+            .unwrap_or_default();
+        let req = format!(
+            "GET {} HTTP/1.1\r\nHost: 127.0.0.1\r\n{}Connection: close\r\n\r\n",
+            path_and_query, origin_hdr
+        );
+        stream.write_all(req.as_bytes()).await.unwrap();
+        let mut buf = Vec::new();
+        stream.read_to_end(&mut buf).await.unwrap();
+        String::from_utf8_lossy(&buf).to_string()
+    }
+
+    #[tokio::test]
+    async fn router_serves_charts_recent_csv_cors_and_404() {
+        let dir = std::env::temp_dir().join(format!("eduroam_http_test_{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        let db_path = dir.join("http_test.db");
+
+        let conn = open_db(&db_path).unwrap();
+        ensure_schema_and_migrate(&conn).unwrap();
+        conn.execute(
+            "INSERT INTO AuthLog (TimeCreated, FullUsername, Username, Realm, ClientIP, NASIdentifier, CallingStationID, Result, ReasonCode, Reason, EventHash)
+             VALUES (datetime('now'), 'ali@kastamonu.edu.tr', 'ali', 'kastamonu.edu.tr', '10.0.0.1', 'AP-1', 'AA-BB-CC-DD-EE-01', 'SUCCESS', 0, 'Basari', 'h-ok')",
+            [],
+        ).unwrap();
+        conn.execute(
+            "INSERT INTO AuthLog (TimeCreated, FullUsername, Username, Realm, ClientIP, NASIdentifier, CallingStationID, Result, ReasonCode, Reason, EventHash)
+             VALUES (datetime('now'), '=cmd|calc', '=cmd|calc', 'evil.org', '10.0.0.2', 'AP-2', 'AA-BB-CC-DD-EE-02', 'FAILURE', 16, 'Hatali sifre', 'h-fail')",
+            [],
+        ).unwrap();
+        drop(conn);
+
+        let mut cfg = EduroamConfig::default();
+        cfg.paths.data_dir = dir.to_string_lossy().to_string();
+        cfg.paths.db_path = db_path.to_string_lossy().to_string();
+        cfg.server.enable_cors = true;
+        cfg.server.allowed_origins = vec!["http://127.0.0.1:3000".to_string()];
+
+        let state = Arc::new(AppState {
+            config: cfg,
+            db_generation: Arc::new(AtomicU64::new(1)),
+            charts_cache: RwLock::new(None),
+        });
+
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let srv = tokio::spawn(async move {
+            let _ = axum::serve(listener, build_router(state)).await;
+        });
+
+        let index_res = http_get(addr, "/", None).await;
+        assert!(index_res.starts_with("HTTP/1.1 200 OK"));
+        assert!(index_res.contains("Eduroam NPS"));
+
+        let charts_ok = http_get(addr, "/api/charts?days=365", Some("http://127.0.0.1:3000")).await;
+        assert!(charts_ok.starts_with("HTTP/1.1 200 OK"));
+        assert!(charts_ok.contains("\"daysBack\":365"));
+        assert!(charts_ok
+            .to_ascii_lowercase()
+            .contains("access-control-allow-origin: http://127.0.0.1:3000"));
+
+        let charts_bad_cors =
+            http_get(addr, "/api/charts?days=365", Some("http://evil.example")).await;
+        assert!(charts_bad_cors.starts_with("HTTP/1.1 200 OK"));
+        assert!(!charts_bad_cors
+            .to_ascii_lowercase()
+            .contains("access-control-allow-origin"));
+
+        let recent_res = http_get(addr, "/api/recent?limit=1&sort=Username;DROP", None).await;
+        assert!(recent_res.starts_with("HTTP/1.1 200 OK"));
+        assert!(recent_res.contains("\"total\":2"));
+        assert!(recent_res.contains("\"pages\":2"));
+
+        let csv_res = http_get(addr, "/api/export.csv", None).await;
+        assert!(csv_res.starts_with("HTTP/1.1 200 OK"));
+        assert!(csv_res.contains("\"'=cmd|calc\""));
+
+        let not_found = http_get(addr, "/api/unknown", None).await;
+        assert!(not_found.starts_with("HTTP/1.1 404 Not Found"));
+
+        srv.abort();
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_parameterized_recent_query_and_limits() {
+        let mut q = HashMap::new();
+        q.insert("username".to_string(), "a%' OR 1=1 --".to_string());
+        q.insert("realm".to_string(), "kastamonu.edu.tr".to_string());
+        q.insert("rc".to_string(), "16".to_string());
+        q.insert("sort".to_string(), "Username".to_string());
+        q.insert("dir".to_string(), "asc".to_string());
+        q.insert("limit".to_string(), "999999".to_string());
+
+        let rq = build_recent_query(&q, 7, 200, 1000);
+        assert!(rq.where_clause.contains("Username LIKE ?"));
+        assert!(rq.where_clause.contains("Realm LIKE ?"));
+        assert!(rq.where_clause.contains("ReasonCode = ?"));
+        assert_eq!(rq.sort_column, "Username");
+        assert_eq!(rq.sort_direction, "ASC");
+        assert_eq!(rq.limit, 1000);
+    }
+
+    #[test]
+    fn test_order_by_whitelist_rejects_unknown_column() {
+        let mut q = HashMap::new();
+        q.insert(
+            "sort".to_string(),
+            "Username; DROP TABLE AuthLog".to_string(),
+        );
+        q.insert("dir".to_string(), "sideways".to_string());
+        let rq = build_recent_query(&q, 7, 200, 1000);
+        assert_eq!(rq.sort_column, "TimeCreated");
+        assert_eq!(rq.sort_direction, "DESC");
+        assert!(!rq.where_clause.contains("DROP"));
+    }
+
+    #[test]
+    fn test_invalid_paging_and_dates_fall_back_safely() {
+        let mut q = HashMap::new();
+        q.insert("page".to_string(), "-5".to_string());
+        q.insert("limit".to_string(), "0".to_string());
+        q.insert("from".to_string(), "2026-01-01' OR '1'='1".to_string());
+        let rq = build_recent_query(&q, 7, 200, 1000);
+        assert_eq!(rq.page, 1);
+        assert_eq!(rq.limit, 200);
+        assert_eq!(rq.offset, 0);
+        assert!(!rq.where_clause.contains("OR '1'"));
+    }
+
+    #[test]
+    fn test_rows_to_csv_formatting_and_escaping() {
+        let rows = vec![
+            RecentLogRow {
+                log_id: 1,
+                zaman: "2026-11-07 10:00:00".to_string(),
+                username: "testuser".to_string(),
+                realm: "kastamonu.edu.tr".to_string(),
+                client_ip: "10.0.0.1".to_string(),
+                nas_identifier: "AP-Floor-1".to_string(),
+                calling_station_id: "AA-BB-CC-DD-EE-FF".to_string(),
+                result: "SUCCESS".to_string(),
+                reason_code: 0,
+                reason: "Basari".to_string(),
+            },
+            RecentLogRow {
+                log_id: 2,
+                zaman: "2026-11-07 10:01:00".to_string(),
+                username: "=cmd|' /C calc'!A0".to_string(),
+                realm: "evil.org".to_string(),
+                client_ip: "10.0.0.2".to_string(),
+                nas_identifier: r#"AP,"Special""#.to_string(),
+                calling_station_id: "11-22-33-44-55-66".to_string(),
+                result: "FAILURE".to_string(),
+                reason_code: 16,
+                reason: "Hatali sifre".to_string(),
+            },
+        ];
+
+        let csv = rows_to_csv(&rows);
+        assert!(csv.starts_with("\"Zaman\",\"Username\",\"Realm\","));
+        assert!(csv.contains("\"'=cmd|' /C calc'!A0\""));
+        assert!(csv.contains(r#""AP,""Special""""#));
+        assert!(csv.ends_with("\r\n"));
+    }
 }

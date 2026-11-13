@@ -103,3 +103,51 @@ pub fn reset_tables(conn: &Connection) -> SqlResult<()> {
     )?;
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_schema_migration_and_reset_idempotent() {
+        let dir = std::env::temp_dir().join(format!("eduroam_db_test_{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        let db_path = dir.join("schema_test.db");
+
+        let conn = open_db(&db_path).unwrap();
+        // First migration
+        ensure_schema_and_migrate(&conn).unwrap();
+        // Second migration (idempotent)
+        ensure_schema_and_migrate(&conn).unwrap();
+
+        conn.execute(
+            "INSERT INTO AuthLog (EventID, TimeCreated, Result, EventHash) VALUES (1, '2026-11-07 12:00:00', 'SUCCESS', 'h1')",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO Devices (MACAddress, FirstSeen, LastSeen, LastUsername, LastResult) VALUES ('AA-BB', '2026-11-07', '2026-11-07', 'u', 'SUCCESS')",
+            [],
+        )
+        .unwrap();
+
+        let count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM AuthLog", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(count, 1);
+
+        reset_tables(&conn).unwrap();
+        let count_after: i64 = conn
+            .query_row("SELECT COUNT(*) FROM AuthLog", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(count_after, 0);
+        let dev_count_after: i64 = conn
+            .query_row("SELECT COUNT(*) FROM Devices", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(dev_count_after, 0);
+
+        drop(conn);
+        let _ = fs::remove_dir_all(&dir);
+    }
+}

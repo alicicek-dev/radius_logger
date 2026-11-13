@@ -11,6 +11,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+      - name: Check Rust formatting
+        run: cargo fmt --check
+      - name: Run Clippy lints
+        run: cargo clippy --all-targets -- -D warnings
       - name: Run Rust unit & integration tests
         run: cargo test
       - name: Build optimized release binary

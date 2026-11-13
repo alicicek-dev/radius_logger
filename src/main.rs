@@ -4,8 +4,8 @@ pub mod db;
 pub mod parser;
 pub mod server;
 
-use crate::collector::{run_collector_pass, save_state_atomic};
-use crate::config::EduroamConfig;
+use crate::collector::{extract_file_date, run_collector_pass, save_state_atomic};
+use crate::config::{write_setup_config, EduroamConfig};
 use crate::db::{ensure_schema_and_migrate, open_db, reset_tables};
 use crate::server::{build_router, AppState};
 use chrono::{Duration, Local};
@@ -42,11 +42,20 @@ enum Commands {
     Collect,
     /// Yalnizca HTTP API ve Dashboard sunucusunu baslatir
     Server,
-    /// SQLite veritabanini olusturur veya mevcut sema uzerinde migration calistirir
+    /// Yapilandirma dosyasi (eduroam_config.json) uretir veya SQLite veritabanini kurar/migrate eder
     Setup {
-        /// Mevcut DB varsa sormadan sifirlar
+        /// NPS log klasoru yolu (verilirse yalnizca eduroam_config.json olusturur)
+        #[arg(long)]
+        log_dir: Option<String>,
+        /// Yapilandirma dosyasinin yazilacagi yol (varsayilan: C:\EduroamLogs\eduroam_config.json)
+        #[arg(long)]
+        config_path: Option<PathBuf>,
+        /// Mevcut config/DB varsa uzerine yazar
         #[arg(long)]
         force: bool,
+        /// --log-dir klasoru henuz yoksa da config dosyasini olusturur
+        #[arg(long)]
+        allow_missing: bool,
         /// Mevcut DB'yi silmeden yalnizca sema migration calistirir
         #[arg(long)]
         migrate: bool,
@@ -70,12 +79,13 @@ enum Commands {
 #[tokio::main]
 async fn main() {
     let cli = Cli::parse();
-    let cfg = EduroamConfig::load(cli.config.as_deref());
+    let (cfg, config_source) = EduroamConfig::load_with_source(cli.config.as_deref());
 
     match cli.command.unwrap_or(Commands::Serve {
         no_collector: false,
     }) {
         Commands::Collect => {
+            ensure_log_dir_ready(&cfg.paths.log_dir, config_source.as_deref());
             if let Err(e) = run_collector_pass(&cfg, None, true) {
                 eprintln!("[HATA] {}", e);
                 std::process::exit(1);
@@ -85,19 +95,112 @@ async fn main() {
             run_http_server(cfg, true).await;
         }
         Commands::Serve { no_collector } => {
+            if !no_collector {
+                ensure_log_dir_ready(&cfg.paths.log_dir, config_source.as_deref());
+            }
             run_http_server(cfg, no_collector).await;
         }
-        Commands::Setup { force, migrate } => {
-            run_setup(&cfg, force, migrate);
+        Commands::Setup {
+            log_dir,
+            config_path,
+            force,
+            allow_missing,
+            migrate,
+        } => {
+            if let Some(dir) = log_dir {
+                run_setup_config(&dir, config_path.as_deref(), force, allow_missing);
+            } else {
+                run_setup(&cfg, force, migrate);
+            }
         }
         Commands::Backfill { days } => {
+            ensure_log_dir_ready(&cfg.paths.log_dir, config_source.as_deref());
             run_backfill(&cfg, days);
         }
         Commands::ResetBackfill { days, force } => {
+            ensure_log_dir_ready(&cfg.paths.log_dir, config_source.as_deref());
             run_reset_and_backfill(&cfg, days, force);
         }
         Commands::RegisterTasks => {
             run_register_tasks();
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+enum LogDirCheck {
+    Ready,
+    EmptyWarning(String),
+}
+
+fn check_log_dir(log_dir: &str, config_source: Option<&Path>) -> Result<LogDirCheck, String> {
+    let source_desc = config_source
+        .map(|p| format!("config dosyasi: {}", p.display()))
+        .unwrap_or_else(|| "kod ici varsayilan".to_string());
+    let path = Path::new(log_dir);
+
+    if !path.exists() || !path.is_dir() {
+        return Err(format!(
+            "Log klasoru bulunamadi: '{}' (kaynak: {}).\n\
+             Cozum: `eduroam-nps.exe setup --log-dir \"<log_klasorunuz>\"` komutunu calistirin veya `eduroam_config.example.json` dosyasini referans alarak `eduroam_config.json` olusturun.",
+            log_dir, source_desc
+        ));
+    }
+
+    let has_logs = fs::read_dir(path)
+        .ok()
+        .map(|entries| {
+            entries.filter_map(|e| e.ok()).any(|entry| {
+                let name = entry.file_name().to_string_lossy().to_string();
+                extract_file_date(&name).is_some()
+            })
+        })
+        .unwrap_or(false);
+
+    if !has_logs {
+        return Ok(LogDirCheck::EmptyWarning(format!(
+            "Log klasorunde henuz eslesen `IN{{YYMMDD}}.log` (IN*.log) dosyasi bulunamadi: '{}' (kaynak: {}).\n\
+             Yeni kurulumda NPS henuz log yazmamis olabilir; farkli bir klasor kullaniyorsaniz `eduroam-nps.exe setup --log-dir \"<log_klasorunuz>\"` komutunu calistirin veya `eduroam_config.example.json` dosyasina bakin.",
+            log_dir, source_desc
+        )));
+    }
+
+    Ok(LogDirCheck::Ready)
+}
+
+fn ensure_log_dir_ready(log_dir: &str, config_source: Option<&Path>) {
+    match check_log_dir(log_dir, config_source) {
+        Ok(LogDirCheck::Ready) => {}
+        Ok(LogDirCheck::EmptyWarning(msg)) => eprintln!("[UYARI] {}", msg),
+        Err(msg) => {
+            eprintln!("[HATA] {}", msg);
+            std::process::exit(1);
+        }
+    }
+}
+
+fn display_full_path(path: &Path) -> PathBuf {
+    if path.is_absolute() {
+        path.to_path_buf()
+    } else if let Ok(cwd) = std::env::current_dir() {
+        cwd.join(path)
+    } else {
+        path.to_path_buf()
+    }
+}
+
+fn run_setup_config(log_dir: &str, config_path: Option<&Path>, force: bool, allow_missing: bool) {
+    match write_setup_config(log_dir, config_path, force, allow_missing) {
+        Ok(written) => {
+            let full = display_full_path(&written);
+            println!("Yapilandirma dosyasi yazildi: {}", full.display());
+            println!("Sonraki adimlar:");
+            println!("  1. Veritabanini hazirlayin : eduroam-nps.exe setup --migrate");
+            println!("  2. Sistemi baslatin        : eduroam-nps.exe");
+        }
+        Err(e) => {
+            eprintln!("[HATA] {}", e);
+            std::process::exit(1);
         }
     }
 }
@@ -297,31 +400,89 @@ fn run_reset_and_backfill(cfg: &EduroamConfig, days_back: i64, force: bool) {
     }
 }
 
+fn escape_xml(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for ch in s.chars() {
+        match ch {
+            '&' => out.push_str("&amp;"),
+            '<' => out.push_str("&lt;"),
+            '>' => out.push_str("&gt;"),
+            '"' => out.push_str("&quot;"),
+            '\'' => out.push_str("&apos;"),
+            _ => out.push(ch),
+        }
+    }
+    out
+}
+
+/// Builds a Task Scheduler 2.0 XML definition with `ExecutionTimeLimit=PT0S` (unlimited)
+/// so the `serve` daemon is never stopped after Windows' default 72-hour limit.
+fn build_scheduled_task_xml(exe_path: &str) -> String {
+    let escaped_exe = escape_xml(exe_path);
+    format!(
+        r#"<?xml version="1.0" encoding="UTF-8"?>
+<Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <Triggers>
+    <BootTrigger>
+      <Enabled>true</Enabled>
+    </BootTrigger>
+  </Triggers>
+  <Principals>
+    <Principal id="Author">
+      <UserId>S-1-5-18</UserId>
+      <RunLevel>HighestAvailable</RunLevel>
+    </Principal>
+  </Principals>
+  <Settings>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <AllowHardTerminate>true</AllowHardTerminate>
+    <StartWhenAvailable>true</StartWhenAvailable>
+    <AllowStartOnDemand>true</AllowStartOnDemand>
+    <Enabled>true</Enabled>
+    <ExecutionTimeLimit>PT0S</ExecutionTimeLimit>
+  </Settings>
+  <Actions Context="Author">
+    <Exec>
+      <Command>{}</Command>
+      <Arguments>serve</Arguments>
+    </Exec>
+  </Actions>
+</Task>
+"#,
+        escaped_exe
+    )
+}
+
 fn run_register_tasks() {
     let exe_path = std::env::current_exe().expect("Calistirilabilir dosya yolu alinamadi");
     let exe_str = exe_path.to_string_lossy();
+    let xml = build_scheduled_task_xml(&exe_str);
+    let xml_path = std::env::temp_dir().join(format!("eduroam_task_{}.xml", std::process::id()));
+
+    if let Err(e) = fs::write(&xml_path, xml.as_bytes()) {
+        eprintln!("Gecici gorev XML dosyasi yazilamadi: {}", e);
+        std::process::exit(1);
+    }
 
     let status = std::process::Command::new("schtasks.exe")
         .args([
             "/Create",
             "/TN",
             "EduroamDashboardServer",
-            "/TR",
-            &format!("\"{}\" serve", exe_str),
-            "/SC",
-            "ONSTART",
-            "/RU",
-            "SYSTEM",
-            "/RL",
-            "HIGHEST",
+            "/XML",
+            &xml_path.to_string_lossy(),
             "/F",
         ])
         .status();
 
+    let _ = fs::remove_file(&xml_path);
+
     match status {
         Ok(s) if s.success() => {
             println!(
-                "Gorev kaydedildi: EduroamDashboardServer ({} serve - ONSTART / SYSTEM)",
+                "Gorev kaydedildi: EduroamDashboardServer ({} serve - ONSTART / SYSTEM / PT0S)",
                 exe_str
             );
         }
@@ -342,385 +503,51 @@ fn run_register_tasks() {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::collector::load_state;
-    use crate::parser::{
-        compute_event_hash, format_csv_field, parse_ias_event_line, parse_ias_timestamp,
-        split_username,
-    };
-    use crate::server::build_recent_query;
-    use chrono::NaiveDate;
-    use std::collections::HashMap;
-    use std::fs::OpenOptions;
 
     #[test]
-    fn test_default_config_backward_compatible() {
-        let cfg = EduroamConfig::default();
-        assert_eq!(cfg.paths.log_dir, r"C:\NPSLogs");
-        assert_eq!(cfg.paths.db_path, r"C:\EduroamLogs\eduroam_logs.db");
-        assert_eq!(cfg.server.host, "127.0.0.1");
-        assert_eq!(cfg.server.max_page_limit, 1000);
-        assert!(!cfg.collector.collect_challenges);
+    fn test_scheduled_task_xml_uses_pt0s_and_escapes_path() {
+        let xml = build_scheduled_task_xml(r#"C:\Eduroam & Logs\eduroam-nps.exe"#);
+        assert!(xml.contains("<ExecutionTimeLimit>PT0S</ExecutionTimeLimit>"));
+        assert!(xml.contains("<BootTrigger>"));
+        assert!(xml.contains("<UserId>S-1-5-18</UserId>"));
+        assert!(xml.contains("<RunLevel>HighestAvailable</RunLevel>"));
+        assert!(xml.contains("<Arguments>serve</Arguments>"));
+        assert!(xml.contains(r#"<Command>C:\Eduroam &amp; Logs\eduroam-nps.exe</Command>"#));
     }
 
     #[test]
-    fn test_parses_ias_xml_fields() {
-        let line = r#"<Event><Timestamp data_type="4">06/08/2026 10:11:12.123</Timestamp><Packet-Type data_type="0">3</Packet-Type><User-Name data_type="1">ali@kastamonu.edu.tr</User-Name><Client-IP-Address data_type="3">10.0.0.1</Client-IP-Address><Reason-Code data_type="0">16</Reason-Code></Event>"#;
-        let fields = parse_ias_event_line(line);
-        assert_eq!(fields.packet_type, "3");
-        assert_eq!(fields.user_name, "ali@kastamonu.edu.tr");
-        assert_eq!(fields.client_ip, "10.0.0.1");
-        assert_eq!(fields.reason_code, "16");
-        let ts = parse_ias_timestamp(fields.timestamp).expect("valid timestamp");
-        assert_eq!(
-            ts.format("%Y-%m-%d %H:%M:%S").to_string(),
-            "2026-06-08 10:11:12"
-        );
-    }
-
-    #[test]
-    fn test_splits_usernames() {
-        let (u1, r1) = split_username("ali@kastamonu.edu.tr");
-        assert_eq!(u1, "ali");
-        assert_eq!(r1, "kastamonu.edu.tr");
-
-        let (u2, r2) = split_username("localuser");
-        assert_eq!(u2, "localuser");
-        assert_eq!(r2, "");
-    }
-
-    #[test]
-    fn test_event_hash_matches_powershell_sha256() {
-        let a = compute_event_hash("IN260608.log", 10, "<Event>A</Event>");
-        let b = compute_event_hash("IN260608.log", 10, "<Event>A</Event>");
-        let c = compute_event_hash("IN260608.log", 11, "<Event>A</Event>");
-        assert_eq!(a, b);
-        assert_ne!(a, c);
-        assert_eq!(a.len(), 64);
-    }
-
-    #[test]
-    fn test_parameterized_recent_query_and_limits() {
-        let mut q = HashMap::new();
-        q.insert("username".to_string(), "a%' OR 1=1 --".to_string());
-        q.insert("realm".to_string(), "kastamonu.edu.tr".to_string());
-        q.insert("rc".to_string(), "16".to_string());
-        q.insert("sort".to_string(), "Username".to_string());
-        q.insert("dir".to_string(), "asc".to_string());
-        q.insert("limit".to_string(), "999999".to_string());
-
-        let rq = build_recent_query(&q, 7, 200, 1000);
-        assert!(rq.where_clause.contains("Username LIKE ?"));
-        assert!(rq.where_clause.contains("Realm LIKE ?"));
-        assert!(rq.where_clause.contains("ReasonCode = ?"));
-        assert_eq!(rq.sort_column, "Username");
-        assert_eq!(rq.sort_direction, "ASC");
-        assert_eq!(rq.limit, 1000);
-    }
-
-    #[test]
-    fn test_csv_escaping_and_formula_injection_guard() {
-        assert_eq!(format_csv_field(r#"a"b,c"#), r#""a""b,c""#);
-        assert_eq!(
-            format_csv_field("=cmd|'/C calc'!A0"),
-            "\"'=cmd|'/C calc'!A0\""
-        );
-    }
-
-    #[test]
-    fn test_end_to_end_collector_and_byte_offset_resume() {
-        let tmp_dir = std::env::temp_dir().join(format!("eduroam_rust_test_{}", std::process::id()));
-        let _ = fs::remove_dir_all(&tmp_dir);
-        fs::create_dir_all(&tmp_dir).unwrap();
-
-        let log_file = tmp_dir.join("IN260608.log");
-        let db_file = tmp_dir.join("test.db");
-        let state_file = tmp_dir.join("last_run.txt");
-        let err_file = tmp_dir.join("errors.log");
-
-        let mut cfg = EduroamConfig::default();
-        cfg.paths.log_dir = tmp_dir.to_string_lossy().to_string();
-        cfg.paths.data_dir = tmp_dir.to_string_lossy().to_string();
-        cfg.paths.db_path = db_file.to_string_lossy().to_string();
-        cfg.paths.state_file = state_file.to_string_lossy().to_string();
-        cfg.paths.error_log = err_file.to_string_lossy().to_string();
-        cfg.collector.retention_days = 36500;
-
-        let initial_lines = concat!(
-            "<Event><Timestamp>06/08/2026 10:00:01.000</Timestamp><Packet-Type>1</Packet-Type><User-Name>user1@kastamonu.edu.tr</User-Name><Client-IP-Address>10.1.1.1</Client-IP-Address><Calling-Station-Id>aa-bb-cc-dd-ee-01</Calling-Station-Id><NAS-Identifier>AP-1</NAS-Identifier></Event>\r\n",
-            "<Event><Timestamp>06/08/2026 10:00:02.000</Timestamp><Packet-Type>2</Packet-Type><Client-IP-Address>10.1.1.1</Client-IP-Address><Calling-Station-Id>aa-bb-cc-dd-ee-01</Calling-Station-Id></Event>\r\n"
-        );
-        fs::write(&log_file, initial_lines).unwrap();
-
-        // Save initial state pointing to IN260608.log
-        let start_ts = NaiveDate::from_ymd_opt(2026, 6, 8)
-            .unwrap()
-            .and_hms_opt(0, 0, 0)
-            .unwrap();
-        save_state_atomic(&state_file, "IN260608.log", start_ts, 0, 0).unwrap();
-
-        let inserted1 = run_collector_pass(&cfg, None, false).unwrap();
-        assert_eq!(inserted1, 1);
-
-        // Running again without changes should skip via byte_offset and insert 0
-        let inserted_dup = run_collector_pass(&cfg, None, false).unwrap();
-        assert_eq!(inserted_dup, 0);
-
-        // Append a new failure event to the same file
-        let mut f = OpenOptions::new().append(true).open(&log_file).unwrap();
-        writeln!(
-            f,
-            "<Event><Timestamp>06/08/2026 10:05:00.000</Timestamp><Packet-Type>3</Packet-Type><User-Name>user2@kastamonu.edu.tr</User-Name><Client-IP-Address>10.1.1.1</Client-IP-Address><Calling-Station-Id>aa-bb-cc-dd-ee-02</Calling-Station-Id><Reason-Code>16</Reason-Code></Event>"
-        )
-        .unwrap();
-        drop(f);
-
-        let inserted2 = run_collector_pass(&cfg, None, false).unwrap();
-        assert_eq!(inserted2, 1);
-
-        let conn = open_db(&db_file).unwrap();
-        let count: i64 = conn
-            .query_row("SELECT COUNT(*) FROM AuthLog", [], |r| r.get(0))
-            .unwrap();
-        assert_eq!(count, 2);
-
-        let dev_count: i64 = conn
-            .query_row("SELECT COUNT(*) FROM Devices", [], |r| r.get(0))
-            .unwrap();
-        assert_eq!(dev_count, 2);
-
-        let _ = fs::remove_dir_all(&tmp_dir);
-    }
-
-    #[test]
-    fn test_like_pattern_escapes_wildcards() {
-        assert_eq!(crate::parser::to_sql_like_pattern("a%b_c\\d"), "%a\\%b\\_c\\\\d%");
-        assert_eq!(crate::parser::to_sql_like_pattern(""), "%%");
-    }
-
-    #[test]
-    fn test_order_by_whitelist_rejects_unknown_column() {
-        let mut q = HashMap::new();
-        q.insert("sort".to_string(), "Username; DROP TABLE AuthLog".to_string());
-        q.insert("dir".to_string(), "sideways".to_string());
-        let rq = build_recent_query(&q, 7, 200, 1000);
-        assert_eq!(rq.sort_column, "TimeCreated");
-        assert_eq!(rq.sort_direction, "DESC");
-        assert!(!rq.where_clause.contains("DROP"));
-    }
-
-    #[test]
-    fn test_invalid_paging_and_dates_fall_back_safely() {
-        let mut q = HashMap::new();
-        q.insert("page".to_string(), "-5".to_string());
-        q.insert("limit".to_string(), "0".to_string());
-        q.insert("from".to_string(), "2026-01-01' OR '1'='1".to_string());
-        let rq = build_recent_query(&q, 7, 200, 1000);
-        assert_eq!(rq.page, 1);
-        assert_eq!(rq.limit, 200);
-        assert_eq!(rq.offset, 0);
-        assert!(!rq.where_clause.contains("OR '1'"));
-    }
-
-    #[test]
-    fn test_cors_origin_rules() {
-        let mut cfg = EduroamConfig::default();
-        assert!(!cfg.is_cors_origin_allowed(Some("http://a.example")));
-        cfg.server.enable_cors = true;
-        cfg.server.allowed_origins = vec!["http://a.example".to_string()];
-        assert!(cfg.is_cors_origin_allowed(Some("http://a.example")));
-        assert!(cfg.is_cors_origin_allowed(Some("  http://a.example ")));
-        assert!(!cfg.is_cors_origin_allowed(Some("http://evil.example")));
-        assert!(!cfg.is_cors_origin_allowed(Some("")));
-        assert!(!cfg.is_cors_origin_allowed(None));
-    }
-
-    #[test]
-    fn test_extract_file_date() {
-        assert_eq!(
-            crate::collector::extract_file_date("IN261106.log"),
-            NaiveDate::from_ymd_opt(2026, 11, 6)
-        );
-        assert_eq!(
-            crate::collector::extract_file_date("in261106.LOG"),
-            NaiveDate::from_ymd_opt(2026, 11, 6)
-        );
-        assert_eq!(crate::collector::extract_file_date("IN261306.log"), None);
-        assert_eq!(crate::collector::extract_file_date("IN26110.log"), None);
-        assert_eq!(crate::collector::extract_file_date("notes.txt"), None);
-    }
-
-    #[test]
-    fn test_parse_ias_timestamp_rejects_garbage() {
-        assert!(parse_ias_timestamp("not a date").is_none());
-        assert!(parse_ias_timestamp("").is_none());
-    }
-
-    #[test]
-    fn test_reason_text_known_and_unknown() {
-        use crate::parser::get_reason_text;
-        assert_eq!(get_reason_text(0, ""), "Basari");
-        assert_eq!(get_reason_text(112, "112"), "Istek iletilmedi (realm yonlendirme)");
-        assert_eq!(get_reason_text(9999, "9999"), "Kod: 9999");
-    }
-
-    #[test]
-    fn test_state_roundtrip_and_atomic_tmp_cleanup() {
-        let dir = std::env::temp_dir().join(format!("eduroam_state_test_{}", std::process::id()));
+    fn test_check_log_dir_reports_missing_empty_and_ready() {
+        let dir = std::env::temp_dir().join(format!("eduroam_chk_dir_{}", std::process::id()));
         let _ = fs::remove_dir_all(&dir);
-        let state = dir.join("last_run.txt");
-        let ts = NaiveDate::from_ymd_opt(2026, 11, 7)
-            .unwrap()
-            .and_hms_opt(23, 15, 14)
-            .unwrap();
-        save_state_atomic(&state, "IN261107.log", ts, 4096, 17).unwrap();
-        let (file, got_ts, off, line) = load_state(&state);
-        assert_eq!((file.as_str(), got_ts, off, line), ("IN261107.log", ts, 4096, 17));
-        assert!(!state.with_extension("txt.tmp").exists());
-        let _ = fs::remove_dir_all(&dir);
-    }
 
-    #[test]
-    fn test_retention_prunes_old_records_only() {
-        let dir = std::env::temp_dir().join(format!("eduroam_retention_test_{}", std::process::id()));
-        let _ = fs::remove_dir_all(&dir);
+        // 1. Missing directory -> Err with searched path, source, setup command, example json
+        let missing = dir.join("nope");
+        let err = check_log_dir(&missing.to_string_lossy(), None).unwrap_err();
+        assert!(err.contains(&missing.to_string_lossy().to_string()));
+        assert!(err.contains("kod ici varsayilan"));
+        assert!(err.contains("setup --log-dir"));
+        assert!(err.contains("eduroam_config.example.json"));
+
+        // 2. Existing empty directory -> EmptyWarning citing config source
         fs::create_dir_all(&dir).unwrap();
-        let db_file = dir.join("test.db");
-        let state_file = dir.join("last_run.txt");
+        let src_cfg = PathBuf::from(r"C:\EduroamLogs\eduroam_config.json");
+        match check_log_dir(&dir.to_string_lossy(), Some(&src_cfg)).unwrap() {
+            LogDirCheck::EmptyWarning(msg) => {
+                assert!(msg.contains(&dir.to_string_lossy().to_string()));
+                assert!(msg.contains("eduroam_config.json"));
+                assert!(msg.contains("setup --log-dir"));
+                assert!(msg.contains("eduroam_config.example.json"));
+            }
+            LogDirCheck::Ready => panic!("Bos klasorde uyari donmeliydi"),
+        }
 
-        let mut cfg = EduroamConfig::default();
-        assert_eq!(cfg.collector.retention_days, 365);
-        cfg.paths.log_dir = dir.to_string_lossy().to_string();
-        cfg.paths.data_dir = dir.to_string_lossy().to_string();
-        cfg.paths.db_path = db_file.to_string_lossy().to_string();
-        cfg.paths.state_file = state_file.to_string_lossy().to_string();
-        cfg.paths.error_log = dir.join("errors.log").to_string_lossy().to_string();
-        cfg.collector.retention_days = 180;
-
-        fs::write(
-            dir.join("IN260608.log"),
-            "<Event><Timestamp>06/08/2026 10:00:01.000</Timestamp><Packet-Type>3</Packet-Type><User-Name>u@kastamonu.edu.tr</User-Name><Client-IP-Address>10.1.1.1</Client-IP-Address><Reason-Code>16</Reason-Code></Event>\r\n",
-        )
-        .unwrap();
-        let start = NaiveDate::from_ymd_opt(2026, 6, 8).unwrap().and_hms_opt(0, 0, 0).unwrap();
-        save_state_atomic(&state_file, "IN260608.log", start, 0, 0).unwrap();
-        run_collector_pass(&cfg, None, false).unwrap();
-
-        let conn = open_db(&db_file).unwrap();
-        conn.execute(
-            "INSERT INTO AuthLog (TimeCreated, Result, EventHash) VALUES ('2000-01-01 00:00:00','FAILURE','old-row')",
-            [],
-        )
-        .unwrap();
-        conn.execute(
-            "INSERT INTO AuthLog (TimeCreated, Result, EventHash) VALUES (datetime('now'),'FAILURE','new-row')",
-            [],
-        )
-        .unwrap();
-        drop(conn);
-
-        // Yeni log verisi olmadan da dosya listesi doluyken retention calismali.
-        run_collector_pass(&cfg, None, false).unwrap();
-
-        let conn = open_db(&db_file).unwrap();
-        let old: i64 = conn
-            .query_row("SELECT COUNT(*) FROM AuthLog WHERE EventHash='old-row'", [], |r| r.get(0))
-            .unwrap();
-        let new: i64 = conn
-            .query_row("SELECT COUNT(*) FROM AuthLog WHERE EventHash='new-row'", [], |r| r.get(0))
-            .unwrap();
-        assert_eq!(old, 0, "180 gunden eski kayit silinmeli");
-        assert_eq!(new, 1, "yeni kayit korunmali");
-        drop(conn);
-        let _ = fs::remove_dir_all(&dir);
-    }
-
-    #[test]
-    fn test_split_username_edge_cases() {
-        assert_eq!(split_username(""), (String::new(), String::new()));
-        assert_eq!(split_username("   "), (String::new(), String::new()));
-        assert_eq!(split_username("user@"), ("user@".to_string(), String::new()));
-        assert_eq!(split_username("@realm"), ("@realm".to_string(), String::new()));
+        // 3. Matching IN{YYMMDD}.log present -> Ready
+        fs::write(dir.join("IN261113.log"), "").unwrap();
         assert_eq!(
-            split_username("john.doe@sub.kastamonu.edu.tr"),
-            ("john.doe".to_string(), "sub.kastamonu.edu.tr".to_string())
+            check_log_dir(&dir.to_string_lossy(), Some(&src_cfg)).unwrap(),
+            LogDirCheck::Ready
         );
-        assert_eq!(
-            split_username("user@inner@domain.com"),
-            ("user@inner".to_string(), "domain.com".to_string())
-        );
-    }
 
-    #[test]
-    fn test_rows_to_csv_formatting_and_escaping() {
-        use crate::server::{rows_to_csv, RecentLogRow};
-        let rows = vec![
-            RecentLogRow {
-                log_id: 1,
-                zaman: "2026-11-07 10:00:00".to_string(),
-                username: "testuser".to_string(),
-                realm: "kastamonu.edu.tr".to_string(),
-                client_ip: "10.0.0.1".to_string(),
-                nas_identifier: "AP-Floor-1".to_string(),
-                calling_station_id: "AA-BB-CC-DD-EE-FF".to_string(),
-                result: "SUCCESS".to_string(),
-                reason_code: 0,
-                reason: "Basari".to_string(),
-            },
-            RecentLogRow {
-                log_id: 2,
-                zaman: "2026-11-07 10:01:00".to_string(),
-                username: "=cmd|' /C calc'!A0".to_string(),
-                realm: "evil.org".to_string(),
-                client_ip: "10.0.0.2".to_string(),
-                nas_identifier: r#"AP,"Special""#.to_string(),
-                calling_station_id: "11-22-33-44-55-66".to_string(),
-                result: "FAILURE".to_string(),
-                reason_code: 16,
-                reason: "Hatali sifre".to_string(),
-            },
-        ];
-
-        let csv = rows_to_csv(&rows);
-        assert!(csv.starts_with("\"Zaman\",\"Username\",\"Realm\","));
-        assert!(csv.contains("\"'=cmd|' /C calc'!A0\""));
-        assert!(csv.contains(r#""AP,""Special""""#));
-        assert!(csv.ends_with("\r\n"));
-    }
-
-    #[test]
-    fn test_schema_migration_and_reset_idempotent() {
-        let dir = std::env::temp_dir().join(format!("eduroam_db_test_{}", std::process::id()));
-        let _ = fs::remove_dir_all(&dir);
-        fs::create_dir_all(&dir).unwrap();
-        let db_path = dir.join("schema_test.db");
-
-        let conn = open_db(&db_path).unwrap();
-        // First migration
-        ensure_schema_and_migrate(&conn).unwrap();
-        // Second migration (idempotent)
-        ensure_schema_and_migrate(&conn).unwrap();
-
-        conn.execute(
-            "INSERT INTO AuthLog (EventID, TimeCreated, Result, EventHash) VALUES (1, '2026-11-07 12:00:00', 'SUCCESS', 'h1')",
-            [],
-        )
-        .unwrap();
-        conn.execute(
-            "INSERT INTO Devices (MACAddress, FirstSeen, LastSeen, LastUsername, LastResult) VALUES ('AA-BB', '2026-11-07', '2026-11-07', 'u', 'SUCCESS')",
-            [],
-        )
-        .unwrap();
-
-        let count: i64 = conn.query_row("SELECT COUNT(*) FROM AuthLog", [], |r| r.get(0)).unwrap();
-        assert_eq!(count, 1);
-
-        reset_tables(&conn).unwrap();
-        let count_after: i64 = conn.query_row("SELECT COUNT(*) FROM AuthLog", [], |r| r.get(0)).unwrap();
-        assert_eq!(count_after, 0);
-        let dev_count_after: i64 = conn.query_row("SELECT COUNT(*) FROM Devices", [], |r| r.get(0)).unwrap();
-        assert_eq!(dev_count_after, 0);
-
-        drop(conn);
         let _ = fs::remove_dir_all(&dir);
     }
 }

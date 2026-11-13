@@ -10,7 +10,7 @@ Windows Server NPS (Network Policy Server) tarafından üretilen IAS XML format�
 
 - **Çalışma Zamanı:** Rust 2021 (`Cargo.toml`, `axum` + `tokio` + `rusqlite` bundled -> `eduroam-nps.exe`)
 - **Arayüz:** Vanilla JS + HTML5 + CSS3 (**Ember Studio Design System** — `DESIGN.md`, `eduroam_dashboard.html` & `eduroam_dashboard.css`)
-- **Hedef Ortam:** Windows Server 2016+ (varsayılan çalışma dizini: `C:\EduroamLogs\`, varsayılan log dizini: `C:\NPSLogs\`)
+- **Hedef Ortam:** Windows Server 2016+ (varsayılan çalışma dizini: `C:\EduroamLogs\`, varsayılan log dizini: `C:\Windows\System32\LogFiles\`)
 
 ---
 

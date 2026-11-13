@@ -285,3 +285,97 @@ pub fn format_csv_field(val: &str) -> String {
     out.push('"');
     out
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parses_ias_xml_fields() {
+        let line = r#"<Event><Timestamp data_type="4">06/08/2026 10:11:12.123</Timestamp><Packet-Type data_type="0">3</Packet-Type><User-Name data_type="1">ali@kastamonu.edu.tr</User-Name><Client-IP-Address data_type="3">10.0.0.1</Client-IP-Address><Reason-Code data_type="0">16</Reason-Code></Event>"#;
+        let fields = parse_ias_event_line(line);
+        assert_eq!(fields.packet_type, "3");
+        assert_eq!(fields.user_name, "ali@kastamonu.edu.tr");
+        assert_eq!(fields.client_ip, "10.0.0.1");
+        assert_eq!(fields.reason_code, "16");
+        let ts = parse_ias_timestamp(fields.timestamp).expect("valid timestamp");
+        assert_eq!(
+            ts.format("%Y-%m-%d %H:%M:%S").to_string(),
+            "2026-06-08 10:11:12"
+        );
+    }
+
+    #[test]
+    fn test_splits_usernames() {
+        let (u1, r1) = split_username("ali@kastamonu.edu.tr");
+        assert_eq!(u1, "ali");
+        assert_eq!(r1, "kastamonu.edu.tr");
+
+        let (u2, r2) = split_username("localuser");
+        assert_eq!(u2, "localuser");
+        assert_eq!(r2, "");
+    }
+
+    #[test]
+    fn test_split_username_edge_cases() {
+        assert_eq!(split_username(""), (String::new(), String::new()));
+        assert_eq!(split_username("   "), (String::new(), String::new()));
+        assert_eq!(
+            split_username("user@"),
+            ("user@".to_string(), String::new())
+        );
+        assert_eq!(
+            split_username("@realm"),
+            ("@realm".to_string(), String::new())
+        );
+        assert_eq!(
+            split_username("john.doe@sub.kastamonu.edu.tr"),
+            ("john.doe".to_string(), "sub.kastamonu.edu.tr".to_string())
+        );
+        assert_eq!(
+            split_username("user@inner@domain.com"),
+            ("user@inner".to_string(), "domain.com".to_string())
+        );
+    }
+
+    #[test]
+    fn test_event_hash_matches_powershell_sha256() {
+        let a = compute_event_hash("IN260608.log", 10, "<Event>A</Event>");
+        let b = compute_event_hash("IN260608.log", 10, "<Event>A</Event>");
+        let c = compute_event_hash("IN260608.log", 11, "<Event>A</Event>");
+        assert_eq!(a, b);
+        assert_ne!(a, c);
+        assert_eq!(a.len(), 64);
+    }
+
+    #[test]
+    fn test_csv_escaping_and_formula_injection_guard() {
+        assert_eq!(format_csv_field(r#"a"b,c"#), r#""a""b,c""#);
+        assert_eq!(
+            format_csv_field("=cmd|'/C calc'!A0"),
+            "\"'=cmd|'/C calc'!A0\""
+        );
+    }
+
+    #[test]
+    fn test_like_pattern_escapes_wildcards() {
+        assert_eq!(to_sql_like_pattern("a%b_c\\d"), "%a\\%b\\_c\\\\d%");
+        assert_eq!(to_sql_like_pattern(""), "%%");
+    }
+
+    #[test]
+    fn test_parse_ias_timestamp_rejects_garbage() {
+        assert!(parse_ias_timestamp("not a date").is_none());
+        assert!(parse_ias_timestamp("").is_none());
+    }
+
+    #[test]
+    fn test_reason_text_known_and_unknown() {
+        assert_eq!(get_reason_text(0, ""), "Basari");
+        assert_eq!(
+            get_reason_text(112, "112"),
+            "Istek iletilmedi (realm yonlendirme)"
+        );
+        assert_eq!(get_reason_text(9999, "9999"), "Kod: 9999");
+    }
+}

@@ -2,6 +2,11 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
 
+/// Default Windows Server NPS IAS log directory.
+pub const DEFAULT_LOG_DIR: &str = r"C:\Windows\System32\LogFiles";
+/// Default runtime configuration override file path.
+pub const DEFAULT_CONFIG_PATH: &str = r"C:\EduroamLogs\eduroam_config.json";
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PathsConfig {
@@ -15,7 +20,7 @@ pub struct PathsConfig {
 impl Default for PathsConfig {
     fn default() -> Self {
         Self {
-            log_dir: r"C:\NPSLogs".to_string(),
+            log_dir: DEFAULT_LOG_DIR.to_string(),
             data_dir: r"C:\EduroamLogs".to_string(),
             db_path: r"C:\EduroamLogs\eduroam_logs.db".to_string(),
             state_file: r"C:\EduroamLogs\last_run.txt".to_string(),
@@ -143,32 +148,139 @@ struct PartialConfig {
     collector: Option<PartialCollector>,
 }
 
-impl EduroamConfig {
-    pub fn load(custom_path: Option<&Path>) -> Self {
-        let mut cfg = EduroamConfig::default();
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct SetupConfigPayload<'a> {
+    paths: SetupPathsPayload<'a>,
+}
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct SetupPathsPayload<'a> {
+    log_dir: &'a str,
+}
+
+/// Writes a partial `eduroam_config.json` containing only `paths.logDir`.
+pub fn write_setup_config(
+    log_dir: &str,
+    config_path: Option<&Path>,
+    force: bool,
+    allow_missing: bool,
+) -> Result<PathBuf, String> {
+    let clean_log_dir = log_dir.trim();
+    if clean_log_dir.is_empty() {
+        return Err("--log-dir degeri bos olamaz.".to_string());
+    }
+
+    let log_path = Path::new(clean_log_dir);
+    if !allow_missing && !log_path.is_dir() {
+        return Err(format!(
+            "Belirtilen log klasoru bulunamadi veya bir klasor degil: '{}'.\n\
+             Once klasoru olusturun veya klasor sonradan olusacaksa --allow-missing bayragini ekleyin.",
+            clean_log_dir
+        ));
+    }
+
+    let target = config_path
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from(DEFAULT_CONFIG_PATH));
+
+    if target.exists() && !force {
+        return Err(format!(
+            "Yapilandirma dosyasi zaten mevcut: '{}'.\n\
+             Uzerine yazmak istemiyorsaniz mevcut dosyayi duzenleyin veya --force bayragi ile yeniden calistirin.",
+            target.display()
+        ));
+    }
+
+    if let Some(parent) = target.parent() {
+        if !parent.as_os_str().is_empty() && !parent.exists() {
+            fs::create_dir_all(parent).map_err(|e| {
+                format!(
+                    "Hedef config klasoru olusturulamadi ({}): {}",
+                    parent.display(),
+                    e
+                )
+            })?;
+        }
+    }
+
+    let payload = SetupConfigPayload {
+        paths: SetupPathsPayload {
+            log_dir: clean_log_dir,
+        },
+    };
+    let mut json = serde_json::to_string_pretty(&payload)
+        .map_err(|e| format!("JSON olusturulamadi: {}", e))?;
+    json.push('\n');
+
+    fs::write(&target, json.as_bytes()).map_err(|e| {
+        format!(
+            "Yapilandirma dosyasi yazilamadi ({}): {}",
+            target.display(),
+            e
+        )
+    })?;
+
+    Ok(target)
+}
+
+impl EduroamConfig {
+    pub fn default_search_candidates(custom_path: Option<&Path>) -> Vec<PathBuf> {
         let mut candidates: Vec<PathBuf> = Vec::new();
         if let Some(p) = custom_path {
             candidates.push(p.to_path_buf());
         }
-        candidates.push(PathBuf::from(r"C:\EduroamLogs\eduroam_config.json"));
+        candidates.push(PathBuf::from(DEFAULT_CONFIG_PATH));
         if let Ok(exe) = std::env::current_exe() {
             if let Some(dir) = exe.parent() {
                 candidates.push(dir.join("eduroam_config.json"));
             }
         }
         candidates.push(PathBuf::from("eduroam_config.json"));
+        candidates
+    }
+
+    pub fn load(custom_path: Option<&Path>) -> Self {
+        Self::load_with_source(custom_path).0
+    }
+
+    pub fn load_with_source(custom_path: Option<&Path>) -> (Self, Option<PathBuf>) {
+        let candidates = Self::default_search_candidates(custom_path);
+        Self::load_from_candidates(&candidates)
+    }
+
+    pub fn load_from_candidates(candidates: &[PathBuf]) -> (Self, Option<PathBuf>) {
+        let mut cfg = EduroamConfig::default();
+        let mut source: Option<PathBuf> = None;
 
         for candidate in candidates {
             if candidate.exists() {
-                if let Ok(raw) = fs::read_to_string(&candidate) {
-                    let trimmed = raw.trim_start_matches('\u{feff}').trim();
-                    if !trimmed.is_empty() {
-                        if let Ok(partial) = serde_json::from_str::<PartialConfig>(trimmed) {
-                            cfg.apply_partial(partial);
+                match fs::read_to_string(candidate) {
+                    Ok(raw) => {
+                        let trimmed = raw.trim_start_matches('\u{feff}').trim();
+                        if !trimmed.is_empty() {
+                            match serde_json::from_str::<PartialConfig>(trimmed) {
+                                Ok(partial) => cfg.apply_partial(partial),
+                                Err(e) => {
+                                    eprintln!(
+                                        "[UYARI] Config dosyasi gecersiz JSON ({}): {}",
+                                        candidate.display(),
+                                        e
+                                    );
+                                }
+                            }
                         }
                     }
+                    Err(e) => {
+                        eprintln!(
+                            "[UYARI] Config dosyasi okunamadi ({}): {}",
+                            candidate.display(),
+                            e
+                        );
+                    }
                 }
+                source = Some(candidate.clone());
                 break;
             }
         }
@@ -186,7 +298,7 @@ impl EduroamConfig {
                 .to_string();
         }
 
-        cfg
+        (cfg, source)
     }
 
     fn apply_partial(&mut self, partial: PartialConfig) {
@@ -270,5 +382,143 @@ impl EduroamConfig {
             return false;
         }
         self.server.allowed_origins.iter().any(|a| a == orig)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_default_config_backward_compatible() {
+        let cfg = EduroamConfig::default();
+        assert_eq!(cfg.paths.log_dir, DEFAULT_LOG_DIR);
+        assert_eq!(cfg.paths.db_path, r"C:\EduroamLogs\eduroam_logs.db");
+        assert_eq!(cfg.server.host, "127.0.0.1");
+        assert_eq!(cfg.server.max_page_limit, 1000);
+        assert_eq!(cfg.collector.retention_days, 365);
+        assert!(!cfg.collector.collect_challenges);
+    }
+
+    #[test]
+    fn test_load_uses_generic_default_when_no_config_exists() {
+        let dir = std::env::temp_dir().join(format!("eduroam_cfg_none_{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        let candidates = vec![
+            dir.join("missing1.json"),
+            dir.join("missing2.json"),
+            dir.join("missing3.json"),
+        ];
+        let (cfg, src) = EduroamConfig::load_from_candidates(&candidates);
+        assert!(src.is_none());
+        assert_eq!(cfg.paths.log_dir, DEFAULT_LOG_DIR);
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_load_partial_json_overrides_log_dir_only() {
+        let dir = std::env::temp_dir().join(format!("eduroam_cfg_part_{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        let cfg_file = dir.join("eduroam_config.json");
+        fs::write(&cfg_file, r#"{ "paths": { "logDir": "D:\\CustomNPS" } }"#).unwrap();
+
+        let (cfg, src) = EduroamConfig::load_from_candidates(std::slice::from_ref(&cfg_file));
+        assert_eq!(src.as_deref(), Some(cfg_file.as_path()));
+        assert_eq!(cfg.paths.log_dir, r"D:\CustomNPS");
+        assert_eq!(cfg.server.host, "127.0.0.1");
+        assert_eq!(cfg.server.port, 8080);
+        assert_eq!(cfg.collector.retention_days, 365);
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_load_respects_candidate_search_order() {
+        let dir = std::env::temp_dir().join(format!("eduroam_cfg_order_{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        let first = dir.join("first.json");
+        let second = dir.join("second.json");
+        let third = dir.join("third.json");
+
+        fs::write(&second, r#"{ "paths": { "logDir": "D:\\Second" } }"#).unwrap();
+        fs::write(&third, r#"{ "paths": { "logDir": "D:\\Third" } }"#).unwrap();
+
+        // first does not exist -> second wins over third
+        let candidates = vec![first.clone(), second.clone(), third.clone()];
+        let (cfg1, src1) = EduroamConfig::load_from_candidates(&candidates);
+        assert_eq!(src1.as_deref(), Some(second.as_path()));
+        assert_eq!(cfg1.paths.log_dir, r"D:\Second");
+
+        // once first exists -> first wins over second
+        fs::write(&first, r#"{ "paths": { "logDir": "D:\\First" } }"#).unwrap();
+        let (cfg2, src2) = EduroamConfig::load_from_candidates(&candidates);
+        assert_eq!(src2.as_deref(), Some(first.as_path()));
+        assert_eq!(cfg2.paths.log_dir, r"D:\First");
+
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_setup_config_generation_escaping_and_overwrite_guards() {
+        let dir = std::env::temp_dir().join(format!("eduroam_setup_cfg_{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+
+        let logs_dir = dir.join("NPSLogs");
+        let missing_dir = dir.join("MissingLogs");
+        let nested_cfg = dir.join("nested").join("eduroam_config.json");
+
+        // Fails if --log-dir does not exist
+        let err_missing = write_setup_config(
+            &missing_dir.to_string_lossy(),
+            Some(&nested_cfg),
+            false,
+            false,
+        )
+        .unwrap_err();
+        assert!(err_missing.contains("bulunamadi"));
+        assert!(!nested_cfg.exists());
+
+        // Succeeds when log dir exists, creates parent dirs, escapes Windows backslashes
+        fs::create_dir_all(&logs_dir).unwrap();
+        let written =
+            write_setup_config(&logs_dir.to_string_lossy(), Some(&nested_cfg), false, false)
+                .unwrap();
+        assert_eq!(written, nested_cfg);
+        let raw_json = fs::read_to_string(&nested_cfg).unwrap();
+        assert!(raw_json.contains(r"\\NPSLogs"));
+        let (loaded, _) = EduroamConfig::load_from_candidates(std::slice::from_ref(&nested_cfg));
+        assert_eq!(loaded.paths.log_dir, logs_dir.to_string_lossy());
+
+        // Refuses to overwrite without --force
+        let err_exists =
+            write_setup_config(&logs_dir.to_string_lossy(), Some(&nested_cfg), false, false)
+                .unwrap_err();
+        assert!(err_exists.contains("--force"));
+
+        // Overwrites when --force is passed (and --allow-missing works for missing dir)
+        let alt_path = r"E:\Archive\NPS\Logs";
+        write_setup_config(alt_path, Some(&nested_cfg), true, true).unwrap();
+        let raw_updated = fs::read_to_string(&nested_cfg).unwrap();
+        assert!(raw_updated.contains(r"E:\\Archive\\NPS\\Logs"));
+        let (reloaded, _) = EduroamConfig::load_from_candidates(std::slice::from_ref(&nested_cfg));
+        assert_eq!(reloaded.paths.log_dir, alt_path);
+
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_cors_origin_rules() {
+        let mut cfg = EduroamConfig::default();
+        assert!(!cfg.is_cors_origin_allowed(Some("http://a.example")));
+        cfg.server.enable_cors = true;
+        cfg.server.allowed_origins = vec!["http://a.example".to_string()];
+        assert!(cfg.is_cors_origin_allowed(Some("http://a.example")));
+        assert!(cfg.is_cors_origin_allowed(Some("  http://a.example ")));
+        assert!(!cfg.is_cors_origin_allowed(Some("http://evil.example")));
+        assert!(!cfg.is_cors_origin_allowed(Some("")));
+        assert!(!cfg.is_cors_origin_allowed(None));
     }
 }

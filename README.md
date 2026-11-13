@@ -60,38 +60,63 @@ cargo build --release
 # Çıktı: target\release\eduroam-nps.exe
 ```
 
-### 2. Komutlar
+### 2. Kurulum Adımları
 `eduroam-nps.exe` harici hiçbir DLL veya SQLite kurulumu gerektirmez:
 
-```powershell
-# 1. Veritabanını oluştur veya mevcut DB'yi migrate et
-.\target\release\eduroam-nps.exe setup --migrate
+1. **NPS Log Konumunu Kontrol Edin:** Windows Server NPS varsayılan olarak günlük `IN{YYMMDD}.log` dosyalarını `C:\Windows\System32\LogFiles` klasörüne yazar. Logları farklı bir klasöre yönlendirdiyseniz (ör. `C:\NPSLogs`), tek komutla yapılandırma oluşturun:
+   ```powershell
+   .\eduroam-nps.exe setup --log-dir "C:\NPSLogs"
+   ```
+   *(Varsayılan olarak `C:\EduroamLogs\eduroam_config.json` dosyasını üretir; hedef dosya varsa `--force` olmadan üzerine yazmaz.)*
+2. **Veritabanını Hazırlayın:**
+   ```powershell
+   .\eduroam-nps.exe setup --migrate
+   ```
+3. **Çalıştırın / Zamanlanmış Görevi Kaydedin:**
+   ```powershell
+   # İsteğe bağlı: Mevcut DB'yi silmeden son 90 günü tara (Append-Only Backfill)
+   .\eduroam-nps.exe backfill --days 90
 
-# 2. Mevcut DB'yi silmeden son 90 günü hızla tara (Append-Only Backfill)
-.\target\release\eduroam-nps.exe backfill --days 90
+   # Arka plan log toplayıcı + HTTP Dashboard sunucusu (argümansız varsayılan mod)
+   .\eduroam-nps.exe
 
-# 3. Hem arka plan log toplayıcıyı hem de HTTP Dashboard sunucusunu başlat (Varsayılan mod)
-.\target\release\eduroam-nps.exe serve
+   # Windows başlangıcında ExecutionTimeLimit=PT0S (sınırsız) ile otomatik çalışacak görevi kaydet (Yönetici olarak)
+   .\eduroam-nps.exe register-tasks
 
-# 4. Windows başlangıcında otomatik çalışacak görevi kaydet (Yönetici olarak)
-.\target\release\eduroam-nps.exe register-tasks
+   # Yalnızca tek seferlik log toplama çalıştırıp çıkmak için:
+   .\eduroam-nps.exe collect
+   ```
 
-# İsteğe bağlı: Windows Task Scheduler varsayılan 72 saatlik limitini sınırsız (PT0S) yapma
-$t = Get-ScheduledTask -TaskName "EduroamDashboardServer"
-$t.Settings.ExecutionTimeLimit = "PT0S"
-Set-ScheduledTask -InputObject $t
+### 3. Yapılandırma, Arama Sırası ve Kısmi JSON
+* **Arama Sırası:** Uygulama açılışta şu sırayla yapılandırma arar (ilk bulduğunu kullanır, hiçbiri yoksa kod içi varsayılanlarla çalışır):
+  1. `--config <dosya>` parametresi (verilmişse)
+  2. `C:\EduroamLogs\eduroam_config.json`
+  3. `<exe_klasörü>\eduroam_config.json`
+  4. `.\eduroam_config.json`
+* **Kısmi JSON Desteği:** Dosyaya yalnızca değiştirmek istediğiniz alanları yazmanız yeterlidir; eksik bırakılan tüm alanlar kod içi varsayılan değerlerde kalır.
+* **Alan Açıklamaları ([`eduroam_config.example.json`](./eduroam_config.example.json)):**
+  * `paths.logDir`: NPS `IN{YYMMDD}.log` dosyalarının bulunduğu klasör (varsayılan: `C:\Windows\System32\LogFiles`).
+  * `paths.dataDir` / `dbPath` / `stateFile` / `errorLog`: SQLite DB, `last_run.txt` ve `collector_errors.log` konumları (`C:\EduroamLogs\`).
+  * `server.*`: Dinleme adresi/portu (`127.0.0.1:8080`), varsayılan gün sayısı, CORS beyaz listesi (`enableCors`, `allowedOrigins`), sayfalama ve CSV dışa aktarım limitleri.
+  * `collector.retentionDays`: `AuthLog` kayıtlarının saklanma süresi (varsayılan: **365 gün**; Web Dashboard dönem seçicisi `7 / 14 / 30 / 90 / 180 / 365` gün aralıklarını destekler).
+  * `collector.batchSize` / `pollIntervalSeconds` / `pendingTtlSeconds` / `maxLogMB`: Toplama periyodu, bellek kuyruğu TTL ve hata günlüğü rotasyon boyutu.
 
-# Yalnızca tek seferlik log toplama çalıştırıp çıkmak için:
-.\target\release\eduroam-nps.exe collect
-```
+### 4. Güvenlik ve Gizlilik Notları
+* **Güvenlik Notu:** Dashboard yalnızca `127.0.0.1:8080` adresine bağlıdır, kimlik doğrulaması yoktur ve tüm uç noktaları salt-okunur (`GET`) yapıdadır. `server.host` değerini `0.0.0.0`'a veya dış ağ arayüzüne açmak yetkisiz erişim riski doğurur; ağ üzerinden erişim gerekiyorsa mutlaka önüne TLS + kimlik doğrulamalı bir reverse proxy konumlandırılmalıdır.
+* **Gizlilik Notu:** RADIUS logları kullanıcı adı, IP adresi ve MAC adresi gibi kişisel veriler içerir. KVKK/GDPR kapsamında saklama süresi (`collector.retentionDays`), veritabanı erişim izinleri ve disk güvenliği sorumluluğu sistem yöneticisine aittir.
 
-### 3. Yapılandırma ve Saklama Süresi
-* **Varsayılan Saklama Süresi:** `AuthLog` kayıtları varsayılan olarak **365 gün** saklanır (`collector.retentionDays`); Web Dashboard dönem seçicisi `7 / 14 / 30 / 90 / 180 / 365` gün aralıklarını destekler.
-* **Özelleştirme:** Tüm yol, port, CORS ve saklama ayarlarını kod değiştirmeden ezmek için [`eduroam_config.example.json`](./eduroam_config.example.json) şablonunu `C:\EduroamLogs\eduroam_config.json` (veya `.exe` yanına) kopyalayıp düzenleyebilirsiniz.
+### 5. Yükseltme Notu
+* Bu sürümde kod içi varsayılan `paths.logDir` değeri jenerik NPS yolu olan `C:\Windows\System32\LogFiles` olarak güncellenmiştir.
+* Önceki sürümlerden yükseltme yaparken özel bir log klasörü kullanıp henüz `eduroam_config.json` oluşturmamış sistemlerde, yeni `.exe` devreye alınmadan **önce** yapılandırma dosyası üretilmelidir:
+  ```powershell
+  .\eduroam-nps.exe setup --log-dir "<mevcut_log_klasorunuz>"
+  ```
 
 ## Test ve Doğrulama
 
 ```powershell
+cargo fmt --check
+cargo clippy --all-targets -- -D warnings
 cargo test
 ```
 

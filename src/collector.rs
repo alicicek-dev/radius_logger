@@ -365,11 +365,13 @@ pub fn run_collector_pass(
         let mut used_byte_seek = false;
 
         // If we have a valid byte offset for the current active file, seek directly to it!
-        if is_same_as_state_file && saved_offset > 0 && file_len > saved_offset {
-            if file.seek(SeekFrom::Start(saved_offset)).is_ok() {
-                line_no = saved_line_no;
-                used_byte_seek = true;
-            }
+        if is_same_as_state_file
+            && saved_offset > 0
+            && file_len > saved_offset
+            && file.seek(SeekFrom::Start(saved_offset)).is_ok()
+        {
+            line_no = saved_line_no;
+            used_byte_seek = true;
         }
 
         let mut reader = BufReader::with_capacity(256 * 1024, file);
@@ -791,5 +793,195 @@ mod tests {
         let mut q: VecDeque<_> = vec![req(1, "a", "m1", ""), req(2, "b", "m2", "")].into();
         let got = match_pending_request(&mut q, ts(3), 60, "", "m2").unwrap();
         assert_eq!(got.username, "b");
+    }
+
+    #[test]
+    fn log_rotation_moves_oversized_file_to_old_log() {
+        let dir = std::env::temp_dir().join(format!("eduroam_log_rot_{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        let log_path = dir.join("collector_errors.log");
+        let old_path = dir.join("collector_errors.old.log");
+
+        let mut cfg = EduroamConfig::default();
+        cfg.paths.error_log = log_path.to_string_lossy().to_string();
+        cfg.collector.max_log_mb = 1;
+
+        fs::write(&log_path, vec![b'x'; 1024 * 1024 + 64]).unwrap();
+        write_collector_log(&cfg, "INFO", "rotated ok");
+
+        assert!(old_path.exists(), ".old.log olusmali");
+        let new_content = fs::read_to_string(&log_path).unwrap();
+        assert!(new_content.contains("rotated ok"));
+        assert!(new_content.len() < 1024);
+
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_end_to_end_collector_and_byte_offset_resume() {
+        let tmp_dir =
+            std::env::temp_dir().join(format!("eduroam_rust_test_{}", std::process::id()));
+        let _ = fs::remove_dir_all(&tmp_dir);
+        fs::create_dir_all(&tmp_dir).unwrap();
+
+        let log_file = tmp_dir.join("IN260608.log");
+        let db_file = tmp_dir.join("test.db");
+        let state_file = tmp_dir.join("last_run.txt");
+        let err_file = tmp_dir.join("errors.log");
+
+        let mut cfg = EduroamConfig::default();
+        cfg.paths.log_dir = tmp_dir.to_string_lossy().to_string();
+        cfg.paths.data_dir = tmp_dir.to_string_lossy().to_string();
+        cfg.paths.db_path = db_file.to_string_lossy().to_string();
+        cfg.paths.state_file = state_file.to_string_lossy().to_string();
+        cfg.paths.error_log = err_file.to_string_lossy().to_string();
+        cfg.collector.retention_days = 36500;
+
+        let initial_lines = concat!(
+            "<Event><Timestamp>06/08/2026 10:00:01.000</Timestamp><Packet-Type>1</Packet-Type><User-Name>user1@kastamonu.edu.tr</User-Name><Client-IP-Address>10.1.1.1</Client-IP-Address><Calling-Station-Id>aa-bb-cc-dd-ee-01</Calling-Station-Id><NAS-Identifier>AP-1</NAS-Identifier></Event>\r\n",
+            "<Event><Timestamp>06/08/2026 10:00:02.000</Timestamp><Packet-Type>2</Packet-Type><Client-IP-Address>10.1.1.1</Client-IP-Address><Calling-Station-Id>aa-bb-cc-dd-ee-01</Calling-Station-Id></Event>\r\n"
+        );
+        fs::write(&log_file, initial_lines).unwrap();
+
+        // Save initial state pointing to IN260608.log
+        let start_ts = NaiveDate::from_ymd_opt(2026, 6, 8)
+            .unwrap()
+            .and_hms_opt(0, 0, 0)
+            .unwrap();
+        save_state_atomic(&state_file, "IN260608.log", start_ts, 0, 0).unwrap();
+
+        let inserted1 = run_collector_pass(&cfg, None, false).unwrap();
+        assert_eq!(inserted1, 1);
+
+        // Running again without changes should skip via byte_offset and insert 0
+        let inserted_dup = run_collector_pass(&cfg, None, false).unwrap();
+        assert_eq!(inserted_dup, 0);
+
+        // Append a new failure event to the same file
+        let mut f = OpenOptions::new().append(true).open(&log_file).unwrap();
+        writeln!(
+            f,
+            "<Event><Timestamp>06/08/2026 10:05:00.000</Timestamp><Packet-Type>3</Packet-Type><User-Name>user2@kastamonu.edu.tr</User-Name><Client-IP-Address>10.1.1.1</Client-IP-Address><Calling-Station-Id>aa-bb-cc-dd-ee-02</Calling-Station-Id><Reason-Code>16</Reason-Code></Event>"
+        )
+        .unwrap();
+        drop(f);
+
+        let inserted2 = run_collector_pass(&cfg, None, false).unwrap();
+        assert_eq!(inserted2, 1);
+
+        let conn = open_db(&db_file).unwrap();
+        let count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM AuthLog", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(count, 2);
+
+        let dev_count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM Devices", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(dev_count, 2);
+
+        let _ = fs::remove_dir_all(&tmp_dir);
+    }
+
+    #[test]
+    fn test_extract_file_date() {
+        assert_eq!(
+            extract_file_date("IN261106.log"),
+            NaiveDate::from_ymd_opt(2026, 11, 6)
+        );
+        assert_eq!(
+            extract_file_date("in261106.LOG"),
+            NaiveDate::from_ymd_opt(2026, 11, 6)
+        );
+        assert_eq!(extract_file_date("IN261306.log"), None);
+        assert_eq!(extract_file_date("IN26110.log"), None);
+        assert_eq!(extract_file_date("notes.txt"), None);
+    }
+
+    #[test]
+    fn test_state_roundtrip_and_atomic_tmp_cleanup() {
+        let dir = std::env::temp_dir().join(format!("eduroam_state_test_{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        let state = dir.join("last_run.txt");
+        let ts = NaiveDate::from_ymd_opt(2026, 11, 7)
+            .unwrap()
+            .and_hms_opt(23, 15, 14)
+            .unwrap();
+        save_state_atomic(&state, "IN261107.log", ts, 4096, 17).unwrap();
+        let (file, got_ts, off, line) = load_state(&state);
+        assert_eq!(
+            (file.as_str(), got_ts, off, line),
+            ("IN261107.log", ts, 4096, 17)
+        );
+        assert!(!state.with_extension("txt.tmp").exists());
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_retention_prunes_old_records_only() {
+        let dir =
+            std::env::temp_dir().join(format!("eduroam_retention_test_{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        let db_file = dir.join("test.db");
+        let state_file = dir.join("last_run.txt");
+
+        let mut cfg = EduroamConfig::default();
+        assert_eq!(cfg.collector.retention_days, 365);
+        cfg.paths.log_dir = dir.to_string_lossy().to_string();
+        cfg.paths.data_dir = dir.to_string_lossy().to_string();
+        cfg.paths.db_path = db_file.to_string_lossy().to_string();
+        cfg.paths.state_file = state_file.to_string_lossy().to_string();
+        cfg.paths.error_log = dir.join("errors.log").to_string_lossy().to_string();
+        cfg.collector.retention_days = 180;
+
+        fs::write(
+            dir.join("IN260608.log"),
+            "<Event><Timestamp>06/08/2026 10:00:01.000</Timestamp><Packet-Type>3</Packet-Type><User-Name>u@kastamonu.edu.tr</User-Name><Client-IP-Address>10.1.1.1</Client-IP-Address><Reason-Code>16</Reason-Code></Event>\r\n",
+        )
+        .unwrap();
+        let start = NaiveDate::from_ymd_opt(2026, 6, 8)
+            .unwrap()
+            .and_hms_opt(0, 0, 0)
+            .unwrap();
+        save_state_atomic(&state_file, "IN260608.log", start, 0, 0).unwrap();
+        run_collector_pass(&cfg, None, false).unwrap();
+
+        let conn = open_db(&db_file).unwrap();
+        conn.execute(
+            "INSERT INTO AuthLog (TimeCreated, Result, EventHash) VALUES ('2000-01-01 00:00:00','FAILURE','old-row')",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO AuthLog (TimeCreated, Result, EventHash) VALUES (datetime('now'),'FAILURE','new-row')",
+            [],
+        )
+        .unwrap();
+        drop(conn);
+
+        // Yeni log verisi olmadan da dosya listesi doluyken retention calismali.
+        run_collector_pass(&cfg, None, false).unwrap();
+
+        let conn = open_db(&db_file).unwrap();
+        let old: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM AuthLog WHERE EventHash='old-row'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        let new: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM AuthLog WHERE EventHash='new-row'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(old, 0, "180 gunden eski kayit silinmeli");
+        assert_eq!(new, 1, "yeni kayit korunmali");
+        drop(conn);
+        let _ = fs::remove_dir_all(&dir);
     }
 }
