@@ -18,7 +18,7 @@
   },
   "collector": {
     "batchSize": 2000,
-    "retentionDays": 180,
+    "retentionDays": 365,
     "pendingQueuePerClient": 50,
     "collectChallenges": false,
     "maxLogMB": 5,

@@ -28,7 +28,7 @@ Bu belge, **Eduroam NPS Loglama Sistemi (v5.2 — Rust Edition)** içindeki güv
 ## 2. Veri Gizliliği (KVKK / GDPR) ve Saklama Süresi
 
 - **Kişisel Veriler:** `AuthLog` ve `Devices` tabloları kullanıcı kimliği (`Username`, `FullUsername`), kurum bilgisi (`Realm`), erişim noktası IP adresi (`ClientIP`) ve cihaz MAC adresi (`CallingStationID`) içerir.
-- **Otomatik Veri Temizleme (Retention):** Kolektör her çalışmada `collector.retentionDays` (varsayılan `180` gün) süresinden eski `AuthLog` kayıtlarını otomatik olarak siler.
+- **Otomatik Veri Temizleme (Retention):** Kolektör her çalışmada `collector.retentionDays` (varsayılan `365` gün) süresinden eski `AuthLog` kayıtlarını otomatik olarak siler.
 - **Depolama Güvenliği:**
   - `.gitignore` dosyası `*.db`, `*.db-wal`, `*.db-shm`, `*.log`, `last_run.txt` ve `eduroam_config.json` dosyalarının git deposuna eklenmesini engeller.
   - Sunucu üzerinde `C:\EduroamLogs\` dizin izinlerinin yalnızca `NT AUTHORITY\SYSTEM` ve yetkili sistem yöneticilerine açık olması ve disk şifrelemesinin (BitLocker) aktif tutulması önerilir.

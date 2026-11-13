@@ -78,7 +78,7 @@ impl Default for CollectorConfig {
     fn default() -> Self {
         Self {
             batch_size: 2000,
-            retention_days: 180,
+            retention_days: 365,
             pending_queue_per_client: 50,
             collect_challenges: false,
             max_log_mb: 5,

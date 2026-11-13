@@ -588,6 +588,7 @@ mod tests {
         let state_file = dir.join("last_run.txt");
 
         let mut cfg = EduroamConfig::default();
+        assert_eq!(cfg.collector.retention_days, 365);
         cfg.paths.log_dir = dir.to_string_lossy().to_string();
         cfg.paths.data_dir = dir.to_string_lossy().to_string();
         cfg.paths.db_path = db_file.to_string_lossy().to_string();
