@@ -1,8 +1,8 @@
 [package]
-name = "eduroam-nps"
+name = "radius-nps"
 version = "5.2.0"
 edition = "2021"
-description = "High-performance Eduroam NPS RADIUS Log Collector & Dashboard HTTP API Server"
+description = "High-performance Windows NPS RADIUS Log Collector & Dashboard HTTP API Server"
 license = "MIT"
 
 [dependencies]

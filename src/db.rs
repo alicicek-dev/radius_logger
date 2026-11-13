@@ -110,7 +110,7 @@ mod tests {
 
     #[test]
     fn test_schema_migration_and_reset_idempotent() {
-        let dir = std::env::temp_dir().join(format!("eduroam_db_test_{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("radius_db_test_{}", std::process::id()));
         let _ = fs::remove_dir_all(&dir);
         fs::create_dir_all(&dir).unwrap();
         let db_path = dir.join("schema_test.db");

@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 /// Default Windows Server NPS IAS log directory.
 pub const DEFAULT_LOG_DIR: &str = r"C:\Windows\System32\LogFiles";
 /// Default runtime configuration override file path.
-pub const DEFAULT_CONFIG_PATH: &str = r"C:\EduroamLogs\eduroam_config.json";
+pub const DEFAULT_CONFIG_PATH: &str = r"C:\RadiusLogs\radius_config.json";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -21,10 +21,10 @@ impl Default for PathsConfig {
     fn default() -> Self {
         Self {
             log_dir: DEFAULT_LOG_DIR.to_string(),
-            data_dir: r"C:\EduroamLogs".to_string(),
-            db_path: r"C:\EduroamLogs\eduroam_logs.db".to_string(),
-            state_file: r"C:\EduroamLogs\last_run.txt".to_string(),
-            error_log: r"C:\EduroamLogs\collector_errors.log".to_string(),
+            data_dir: r"C:\RadiusLogs".to_string(),
+            db_path: r"C:\RadiusLogs\radius_logs.db".to_string(),
+            state_file: r"C:\RadiusLogs\last_run.txt".to_string(),
+            error_log: r"C:\RadiusLogs\collector_errors.log".to_string(),
         }
     }
 }
@@ -95,7 +95,7 @@ impl Default for CollectorConfig {
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct EduroamConfig {
+pub struct RadiusConfig {
     #[serde(default)]
     pub paths: PathsConfig,
     #[serde(default)]
@@ -160,7 +160,7 @@ struct SetupPathsPayload<'a> {
     log_dir: &'a str,
 }
 
-/// Writes a partial `eduroam_config.json` containing only `paths.logDir`.
+/// Writes a partial `radius_config.json` containing only `paths.logDir`.
 pub fn write_setup_config(
     log_dir: &str,
     config_path: Option<&Path>,
@@ -225,7 +225,7 @@ pub fn write_setup_config(
     Ok(target)
 }
 
-impl EduroamConfig {
+impl RadiusConfig {
     pub fn default_search_candidates(custom_path: Option<&Path>) -> Vec<PathBuf> {
         let mut candidates: Vec<PathBuf> = Vec::new();
         if let Some(p) = custom_path {
@@ -234,10 +234,10 @@ impl EduroamConfig {
         candidates.push(PathBuf::from(DEFAULT_CONFIG_PATH));
         if let Ok(exe) = std::env::current_exe() {
             if let Some(dir) = exe.parent() {
-                candidates.push(dir.join("eduroam_config.json"));
+                candidates.push(dir.join("radius_config.json"));
             }
         }
-        candidates.push(PathBuf::from("eduroam_config.json"));
+        candidates.push(PathBuf::from("radius_config.json"));
         candidates
     }
 
@@ -251,7 +251,7 @@ impl EduroamConfig {
     }
 
     pub fn load_from_candidates(candidates: &[PathBuf]) -> (Self, Option<PathBuf>) {
-        let mut cfg = EduroamConfig::default();
+        let mut cfg = RadiusConfig::default();
         let mut source: Option<PathBuf> = None;
 
         for candidate in candidates {
@@ -391,9 +391,9 @@ mod tests {
 
     #[test]
     fn test_default_config_backward_compatible() {
-        let cfg = EduroamConfig::default();
+        let cfg = RadiusConfig::default();
         assert_eq!(cfg.paths.log_dir, DEFAULT_LOG_DIR);
-        assert_eq!(cfg.paths.db_path, r"C:\EduroamLogs\eduroam_logs.db");
+        assert_eq!(cfg.paths.db_path, r"C:\RadiusLogs\radius_logs.db");
         assert_eq!(cfg.server.host, "127.0.0.1");
         assert_eq!(cfg.server.max_page_limit, 1000);
         assert_eq!(cfg.collector.retention_days, 365);
@@ -402,7 +402,7 @@ mod tests {
 
     #[test]
     fn test_load_uses_generic_default_when_no_config_exists() {
-        let dir = std::env::temp_dir().join(format!("eduroam_cfg_none_{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("radius_cfg_none_{}", std::process::id()));
         let _ = fs::remove_dir_all(&dir);
         fs::create_dir_all(&dir).unwrap();
         let candidates = vec![
@@ -410,7 +410,7 @@ mod tests {
             dir.join("missing2.json"),
             dir.join("missing3.json"),
         ];
-        let (cfg, src) = EduroamConfig::load_from_candidates(&candidates);
+        let (cfg, src) = RadiusConfig::load_from_candidates(&candidates);
         assert!(src.is_none());
         assert_eq!(cfg.paths.log_dir, DEFAULT_LOG_DIR);
         let _ = fs::remove_dir_all(&dir);
@@ -418,13 +418,13 @@ mod tests {
 
     #[test]
     fn test_load_partial_json_overrides_log_dir_only() {
-        let dir = std::env::temp_dir().join(format!("eduroam_cfg_part_{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("radius_cfg_part_{}", std::process::id()));
         let _ = fs::remove_dir_all(&dir);
         fs::create_dir_all(&dir).unwrap();
-        let cfg_file = dir.join("eduroam_config.json");
+        let cfg_file = dir.join("radius_config.json");
         fs::write(&cfg_file, r#"{ "paths": { "logDir": "D:\\CustomNPS" } }"#).unwrap();
 
-        let (cfg, src) = EduroamConfig::load_from_candidates(std::slice::from_ref(&cfg_file));
+        let (cfg, src) = RadiusConfig::load_from_candidates(std::slice::from_ref(&cfg_file));
         assert_eq!(src.as_deref(), Some(cfg_file.as_path()));
         assert_eq!(cfg.paths.log_dir, r"D:\CustomNPS");
         assert_eq!(cfg.server.host, "127.0.0.1");
@@ -435,7 +435,7 @@ mod tests {
 
     #[test]
     fn test_load_respects_candidate_search_order() {
-        let dir = std::env::temp_dir().join(format!("eduroam_cfg_order_{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("radius_cfg_order_{}", std::process::id()));
         let _ = fs::remove_dir_all(&dir);
         fs::create_dir_all(&dir).unwrap();
         let first = dir.join("first.json");
@@ -447,13 +447,13 @@ mod tests {
 
         // first does not exist -> second wins over third
         let candidates = vec![first.clone(), second.clone(), third.clone()];
-        let (cfg1, src1) = EduroamConfig::load_from_candidates(&candidates);
+        let (cfg1, src1) = RadiusConfig::load_from_candidates(&candidates);
         assert_eq!(src1.as_deref(), Some(second.as_path()));
         assert_eq!(cfg1.paths.log_dir, r"D:\Second");
 
         // once first exists -> first wins over second
         fs::write(&first, r#"{ "paths": { "logDir": "D:\\First" } }"#).unwrap();
-        let (cfg2, src2) = EduroamConfig::load_from_candidates(&candidates);
+        let (cfg2, src2) = RadiusConfig::load_from_candidates(&candidates);
         assert_eq!(src2.as_deref(), Some(first.as_path()));
         assert_eq!(cfg2.paths.log_dir, r"D:\First");
 
@@ -462,13 +462,13 @@ mod tests {
 
     #[test]
     fn test_setup_config_generation_escaping_and_overwrite_guards() {
-        let dir = std::env::temp_dir().join(format!("eduroam_setup_cfg_{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("radius_setup_cfg_{}", std::process::id()));
         let _ = fs::remove_dir_all(&dir);
         fs::create_dir_all(&dir).unwrap();
 
         let logs_dir = dir.join("NPSLogs");
         let missing_dir = dir.join("MissingLogs");
-        let nested_cfg = dir.join("nested").join("eduroam_config.json");
+        let nested_cfg = dir.join("nested").join("radius_config.json");
 
         // Fails if --log-dir does not exist
         let err_missing = write_setup_config(
@@ -489,7 +489,7 @@ mod tests {
         assert_eq!(written, nested_cfg);
         let raw_json = fs::read_to_string(&nested_cfg).unwrap();
         assert!(raw_json.contains(r"\\NPSLogs"));
-        let (loaded, _) = EduroamConfig::load_from_candidates(std::slice::from_ref(&nested_cfg));
+        let (loaded, _) = RadiusConfig::load_from_candidates(std::slice::from_ref(&nested_cfg));
         assert_eq!(loaded.paths.log_dir, logs_dir.to_string_lossy());
 
         // Refuses to overwrite without --force
@@ -503,7 +503,7 @@ mod tests {
         write_setup_config(alt_path, Some(&nested_cfg), true, true).unwrap();
         let raw_updated = fs::read_to_string(&nested_cfg).unwrap();
         assert!(raw_updated.contains(r"E:\\Archive\\NPS\\Logs"));
-        let (reloaded, _) = EduroamConfig::load_from_candidates(std::slice::from_ref(&nested_cfg));
+        let (reloaded, _) = RadiusConfig::load_from_candidates(std::slice::from_ref(&nested_cfg));
         assert_eq!(reloaded.paths.log_dir, alt_path);
 
         let _ = fs::remove_dir_all(&dir);
@@ -511,7 +511,7 @@ mod tests {
 
     #[test]
     fn test_cors_origin_rules() {
-        let mut cfg = EduroamConfig::default();
+        let mut cfg = RadiusConfig::default();
         assert!(!cfg.is_cors_origin_allowed(Some("http://a.example")));
         cfg.server.enable_cors = true;
         cfg.server.allowed_origins = vec!["http://a.example".to_string()];

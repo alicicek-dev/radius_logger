@@ -26,6 +26,7 @@ Bu projedeki tüm önemli değişiklikler bu dosyada belgelenmektedir.
 ### Değiştirildi
 - **Varsayılan Saklama Süresi (365 Gün) ve UI Dönem Seçenekleri (`src/config.rs`, `eduroam_dashboard.html`):** Varsayılan `collector.retentionDays` değeri `180` günden `365` güne çıkarıldı; Web Dashboard üst dönem seçicisine `180` ve `365` gün seçenekleri eklendi.
 - **Jenerik Varsayılan Log Yolu ve `setup --log-dir` (`src/config.rs`, `src/main.rs`):** Varsayılan `paths.logDir` standart `C:\Windows\System32\LogFiles` yoluna çekildi; `setup --log-dir` ile tek komutla kısmi `eduroam_config.json` üretimi ve eksik/boş log klasörü için açıklayıcı başlangıç doğrulaması eklendi.
+- **Jenerik Windows RADIUS / NPS Adlandırmasına Geçiş (`radius-nps.exe`, `C:\RadiusLogs`, `radius_config.json`, `RadiusDashboardServer`):** Proje yalnızca eduroam ortamlarına özgü olmaktan çıkarılarak tüm Windows Server NPS / RADIUS kurulumları için genelleştirildi; ikili dosya, yapılandırma, veri dizini, zamanlanmış görev, şablon ve `radius_dashboard.html`/`.css` arayüz metinleri `radius` adlandırmasına taşındı.
 - **Task Scheduler `PT0S` XML ve Kalite İyileştirmeleri (`src/main.rs`, `src/server.rs`, `src/collector.rs`, `.github/workflows/ci.yml`):** `register-tasks` komutu görev XML'i ile doğrudan `ExecutionTimeLimit=PT0S` ayarlayacak şekilde güncellendi; Axum HTTP ve log rotasyon testleri ile CI `fmt`/`clippy` kontrolleri eklendi.
 
 ---

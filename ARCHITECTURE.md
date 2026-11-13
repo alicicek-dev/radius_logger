@@ -1,25 +1,25 @@
 # Sistem Mimarisi ve Operasyon Kılavuzu (`ARCHITECTURE.md`)
 
-**Eduroam NPS Loglama Sistemi (v5.2 — Rust Edition)** — Kastamonu Üniversitesi Bilgi İşlem Daire Başkanlığı
+**RADIUS NPS Loglama Sistemi (v5.2 — Rust Edition)** — Windows Server NPS / RADIUS
 
 ---
 
 ## 1. Mimari Genel Bakış
 
-Sistem v5.2 itibarıyla tek bir bağımsız çalıştırılabilir dosya (`eduroam-nps.exe`) içinde çalışan **Rust motoru** üzerine kuruludur:
+Sistem v5.2 itibarıyla tek bir bağımsız çalıştırılabilir dosya (`radius-nps.exe`) içinde çalışan **Rust motoru** üzerine kuruludur:
 
 1. **Veri Toplama Katmanı (`src/collector.rs` + `src/parser.rs`):** Windows NPS'in ürettiği günlük IAS XML loglarını (`IN{YYMMDD}.log`) `FILE_SHARE_READ | FILE_SHARE_WRITE` bayraklarıyla açar, `last_run.txt` içindeki `ByteOffset` konumuna doğrudan atlar (`SeekFrom::Start`), sıfır-kopya (zero-copy) ayrıştırıcı ile satırları okur ve 2.000'lik batch transaction'larla SQLite'a yazar.
-2. **Veri Saklama Katmanı (`src/db.rs` — `eduroam_logs.db`):** WAL (Write-Ahead Logging) ve **512 MB Memory-Mapped I/O (`mmap`)** modunda çalışan gömülü (bundled) SQLite veritabanı.
-3. **Sunum ve API Katmanı (`src/server.rs` + `eduroam_dashboard.html`):** `tokio` + `axum` tabanlı asenkron HTTP sunucusu ve atomik nesil (`db_generation`) kontrollü bellek içi `/api/charts` önbelleği.
+2. **Veri Saklama Katmanı (`src/db.rs` — `radius_logs.db`):** WAL (Write-Ahead Logging) ve **512 MB Memory-Mapped I/O (`mmap`)** modunda çalışan gömülü (bundled) SQLite veritabanı.
+3. **Sunum ve API Katmanı (`src/server.rs` + `radius_dashboard.html`):** `tokio` + `axum` tabanlı asenkron HTTP sunucusu ve atomik nesil (`db_generation`) kontrollü bellek içi `/api/charts` önbelleği.
 
 ```mermaid
 flowchart LR
     NPS["Windows NPS\nIN{YYMMDD}.log (IAS XML)"]
     COL["Rust Collector (src/collector.rs)\nByteOffset Seek + Zero-Copy Parser"]
     CACHE["Client-IP Kuyruğu\n(60sn TTL + Class/MAC Eşleştirme)"]
-    DB[("SQLite (WAL + 512MB mmap)\neduroam_logs.db\nAuthLog & Devices")]
+    DB[("SQLite (WAL + 512MB mmap)\nradius_logs.db\nAuthLog & Devices")]
     SRV["Axum Async HTTP Server\nhttp://127.0.0.1:8080\n+ RAM Charts Cache (<50 µs)"]
-    UI["Web Dashboard\neduroam_dashboard.html/.css"]
+    UI["Web Dashboard\nradius_dashboard.html/.css"]
 
     NPS -- "FILE_SHARE_READ | WRITE" --> COL
     COL -- "PT=1 (Access-Request)" --> CACHE
@@ -54,7 +54,7 @@ Windows NPS IAS loglarında `PT=2` (Access-Accept) satırlarında kullanıcı ad
 | `TimeCreated` | `TEXT` | `yyyy-MM-dd HH:mm:ss` formatında olay zamanı |
 | `FullUsername` | `TEXT` | Ham kullanıcı kimliği (`kullanici@kurum.edu.tr`) |
 | `Username` | `TEXT` | `@` öncesi kullanıcı adı |
-| `Realm` | `TEXT` | `@` sonrası kurum etki alanı (`kastamonu.edu.tr` vb.) |
+| `Realm` | `TEXT` | `@` sonrası etki alanı (`kurum.edu.tr` vb.) |
 | `ClientIP` | `TEXT` | İsteği gönderen AP / kontrolcü IP adresi |
 | `NASIdentifier` | `TEXT` | AP / NAS tanımlayıcı adı |
 | `NASIPAddress` | `TEXT` | NAS IP adresi |
@@ -81,35 +81,38 @@ Windows NPS IAS loglarında `PT=2` (Access-Accept) satırlarında kullanıcı ad
 
 | Endpoint | Yöntem | İçerik Tipi | Açıklama |
 |---|---|---|---|
-| `/` | `GET` | `text/html; charset=utf-8` | `eduroam_dashboard.html` (diskte varsa diskten, yoksa `.exe` içindeki gömülü kopyadan) |
-| `/style.css` | `GET` | `text/css; charset=utf-8` | `eduroam_dashboard.css` (`Cache-Control: max-age=300`) |
+| `/` | `GET` | `text/html; charset=utf-8` | `radius_dashboard.html` (diskte varsa diskten, yoksa `.exe` içindeki gömülü kopyadan) |
+| `/style.css` | `GET` | `text/css; charset=utf-8` | `radius_dashboard.css` (`Cache-Control: max-age=300`) |
 | `/api/charts` | `GET` | `application/json; charset=utf-8` | Son `daysBack` günün özet metrikleri, trend, saatlik dağılım, AP/Realm/Reason istatistikleri (RAM önbellekli) |
 | `/api/recent` | `GET` | `application/json; charset=utf-8` | Sayfalı ve filtreli log kayıtları (`page`, `limit`, `total`, `pages`, `capabilities`, `data`) |
 | `/api/export.csv` | `GET` | `text/csv; charset=utf-8` | `/api/recent` ile aynı filtrelerle formül enjeksiyonu korumalı CSV çıktısı |
 
 ---
 
-## 5. CLI Komutları (`eduroam-nps.exe`)
+## 5. CLI Komutları (`radius-nps.exe`)
 
 ```powershell
 # Varsayılan mod: HTTP Sunucusu + Arka Plan Otomatik Log Toplayıcı (her 30 sn)
-eduroam-nps.exe serve
+radius-nps.exe serve
 
 # Sadece HTTP Sunucusu (arka plan toplayıcı olmadan)
-eduroam-nps.exe server
+radius-nps.exe server
 
 # Tek seferlik log toplama (Windows Task Scheduler uyumlu)
-eduroam-nps.exe collect
+radius-nps.exe collect
+
+# Özel log klasörü için radius_config.json oluşturma
+radius-nps.exe setup --log-dir "C:\NPSLogs"
 
 # Veritabanı kurulumu veya mevcut DB üzerinde şema migration
-eduroam-nps.exe setup --migrate
+radius-nps.exe setup --migrate
 
 # Mevcut DB'yi silmeden son 90 günü yeniden tarama (Append-Only Backfill)
-eduroam-nps.exe backfill --days 90
+radius-nps.exe backfill --days 90
 
 # Veritabanını sıfırlayıp son 7 günü baştan doldurma
-eduroam-nps.exe reset-backfill --days 7 --force
+radius-nps.exe reset-backfill --days 7 --force
 
 # Windows başlangıcında otomatik çalışacak görevi kaydetme (Yönetici olarak)
-eduroam-nps.exe register-tasks
+radius-nps.exe register-tasks
 ```

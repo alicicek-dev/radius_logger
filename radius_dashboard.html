@@ -7,7 +7,7 @@
 <script>
 try { document.querySelector('meta[name="color-scheme"]').content = localStorage.getItem("color-scheme") ?? "light dark"; } catch (e) {}
 </script>
-<title>Eduroam NPS — Kastamonu Üniversitesi</title>
+<title>RADIUS NPS — Log İzleme Paneli</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Playfair+Display:wght@600&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
@@ -19,12 +19,12 @@ try { document.querySelector('meta[name="color-scheme"]').content = localStorage
   <!-- Top Navigation Bar (Layer 1: Brand + System Metrics + Action Controls) -->
   <header class="topbar">
     <div class="topbar-inner">
-      <!-- Left: KU Brand -->
+      <!-- Left: Brand -->
       <div class="brand">
-        <div class="brand-avatar" aria-hidden="true">KU</div>
+        <div class="brand-avatar" aria-hidden="true">RN</div>
         <div>
-          <div class="brand-title">Eduroam NPS</div>
-          <div class="brand-sub">Kastamonu Üniversitesi · BİDB</div>
+          <div class="brand-title">RADIUS NPS</div>
+          <div class="brand-sub">Windows Network Policy Server</div>
         </div>
       </div>
 
@@ -257,8 +257,8 @@ try { document.querySelector('meta[name="color-scheme"]').content = localStorage
                 <input class="input-ember" id="fUser" type="text" placeholder="kullanici…">
               </div>
               <div class="filter-group">
-                <label for="fRealm">Kurum (Realm)</label>
-                <input class="input-ember" id="fRealm" type="text" placeholder="kastamonu.edu.tr…">
+                <label for="fRealm">Etki Alanı (Realm)</label>
+                <input class="input-ember" id="fRealm" type="text" placeholder="kurum.edu.tr…">
               </div>
               <div class="filter-group">
                 <label for="fIP">Erişim Noktası IP</label>
@@ -443,7 +443,7 @@ try { document.querySelector('meta[name="color-scheme"]').content = localStorage
                 <div class="heading-subhead">EAP El Sıkışma (RC-22)</div>
                 <span class="chip" id="refCnt-22">0 kayıt</span>
               </div>
-              <p class="text-secondary">İstemci cihaz EAP/TLS el sıkışmasını yarıda kesti; eduroam CAT profili ve kök CA sertifikasını kontrol edin.</p>
+              <p class="text-secondary">İstemci cihaz EAP/TLS el sıkışmasını yarıda kesti; istemci EAP/TLS profili ve kök CA sertifikasını kontrol edin.</p>
             </div>
           </div>
 
@@ -585,7 +585,7 @@ const NPS_REASON_CODES = [
   { code: 80, cn:'IAS_NO_RECORD',                  tr:'Kayıt bulunamadı',                                    cat:'warn', catL:'Sistem',     action:'Muhasebe kayıtlarını kontrol edin.' },
   { code: 96, cn:'IAS_SESSION_TIMEOUT',            tr:'Bağlantı süresi doldu — yeniden giriş gerekli',       cat:'warn', catL:'Oturum',     action:'Oturum zaman aşımı değerini kontrol edin.' },
   { code: 97, cn:'IAS_UNEXPECTED_REQUEST',         tr:'Beklenmedik bağlantı isteği',                         cat:'err',  catL:'Sistem',     action:'AP ile NPS arasındaki EAP sürecini inceleyin.' },
-  { code:100, cn:'IAS_PROXY_REJECT',               tr:'Yabancı kurum erişimi reddedildi',                    cat:'err',  catL:'Federasyon', action:'Eduroam federasyon proxy yapılandırmasını kontrol edin.' },
+  { code:100, cn:'IAS_PROXY_REJECT',               tr:'Uzak RADIUS proxy erişimi reddedildi',              cat:'err',  catL:'Proxy/Realm', action:'Uzak RADIUS / federasyon proxy yapılandırmasını kontrol edin.' },
   { code:101, cn:'IAS_PROXY_CONNECT_ERROR',        tr:'Yabancı kurum sunucusuna bağlanılamadı',              cat:'err',  catL:'Federasyon', action:'Proxy hedef sunucu IP/port ayarlarını kontrol edin.' },
   { code:102, cn:'IAS_PROXY_FORWARD_ERROR',        tr:'Yabancı kurum isteği iletilemedi',                    cat:'err',  catL:'Federasyon', action:'RADIUS proxy yönlendirme kurallarını kontrol edin.' },
   { code:103, cn:'IAS_PROXY_RESPONSE_INVALID',     tr:'Yabancı kurum sunucusundan geçersiz yanıt',           cat:'err',  catL:'Federasyon', action:'Uzak RADIUS yapılandırmasını kontrol edin.' },
@@ -603,11 +603,11 @@ const NPS_REASON_CODES = [
   { code:259, cn:'IAS_CRYPT_E_REVOKED',            tr:'Sertifika iptal edilmiş (CRL)',                       cat:'err',  catL:'Sertifika',  action:'Sertifika iptal listesini (CRL) kontrol edin.' },
   { code:260, cn:'IAS_CRYPT_E_NO_REVOCATION_CHECK', tr:'Sertifika iptal kontrolü (CRL/OCSP) yapılamadı',     cat:'warn', catL:'Sertifika',  action:'Sunucunun CRL/OCSP dağıtım noktasına erişimini kontrol edin.' },
   { code:262, cn:'IAS_SEC_E_ISSUING_CA_UNTRUSTED', tr:'Sertifika veren makama (CA) güvenilmiyor',            cat:'err',  catL:'Sertifika',  action:'Ara ve Kök CA sertifikalarının güvenilir depoda olduğunu doğrulayın.' },
-  { code:265, cn:'IAS_TLS_TRUST_FAILURE',          tr:'TLS sertifika güven veya el sıkışma hatası',          cat:'warn', catL:'Sertifika',  action:'İstemci cihazda eduroam CAT profili / Kök CA sertifikası yüklü olmalıdır.' },
+  { code:265, cn:'IAS_TLS_TRUST_FAILURE',          tr:'TLS sertifika güven veya el sıkışma hatası',          cat:'warn', catL:'Sertifika',  action:'İstemci cihazda güvenilir Kök CA sertifikası ve EAP profili yüklü olmalıdır.' },
   { code:266, cn:'IAS_SEC_E_MESSAGE_ALTERED',      tr:'EAP/TLS paket bütünlüğü bozuldu',                     cat:'err',  catL:'Ağ',         action:'AP ile NPS arasındaki MTU/fragmentation ayarlarını kontrol edin.' },
-  { code:269, cn:'IAS_SEC_E_ILLEGAL_MESSAGE',      tr:'Geçersiz TLS el sıkışma mesajı (Illegal Message)',    cat:'warn', catL:'Sertifika',  action:'İstemci TLS/EAP sürüm uyumsuzluğu. Eduroam profilini güncelleyin.' },
+  { code:269, cn:'IAS_SEC_E_ILLEGAL_MESSAGE',      tr:'Geçersiz TLS el sıkışma mesajı (Illegal Message)',    cat:'warn', catL:'Sertifika',  action:'İstemci TLS/EAP sürüm uyumsuzluğu. Kablosuz/RADIUS profilini güncelleyin.' },
   { code:299, cn:'IAS_EAP_SESSION_INTERRUPTED',    tr:'EAP oturumu istemci tarafından yarıda kesildi',       cat:'warn', catL:'Cihaz',      action:'İstemci kapsama alanından çıkmış veya sertifika onayını bekletmiş olabilir.' },
-  { code:300, cn:'IAS_EAP_USER_CREDENTIALS_ERR',   tr:'EAP kimlik bilgisi veya iç tünel doğrulama hatası',   cat:'warn', catL:'Kullanıcı',  action:'Kayıtlı eduroam profilini unutup kullanıcı adı/şifreyi yeniden girin.' }
+  { code:300, cn:'IAS_EAP_USER_CREDENTIALS_ERR',   tr:'EAP kimlik bilgisi veya iç tünel doğrulama hatası',   cat:'warn', catL:'Kullanıcı',  action:'Kayıtlı ağ/RADIUS profilini unutup kullanıcı adı/şifreyi yeniden girin.' }
 ];
 
 const PACKET_TYPES = [
@@ -632,13 +632,13 @@ let _tablePage=1, _tableTotal=0, _tablePages=0;
 const PER_PAGE=100;
 let _dashData=null;
 let _filterTimer=null;
-let _selectedDays=parseInt(localStorage.getItem('eduroam-days')||'90',10)||90;
+let _selectedDays=parseInt(localStorage.getItem('radius-days')||'90',10)||90;
 let _capabilities={supportsChallenge:false,maxPageLimit:1000,maxExportRows:10000};
 
 function changeDays(val){
   const d=parseInt(val,10)||90;
   _selectedDays=d;
-  try { localStorage.setItem('eduroam-days', String(d)); } catch(e){}
+  try { localStorage.setItem('radius-days', String(d)); } catch(e){}
   loadData();
 }
 
@@ -712,7 +712,7 @@ async function loadData() {
     em.style.display='block';
     em.innerHTML='<div class="heading-subhead" style="margin-bottom:var(--space-8); color:var(--color-error);">Sunucuya Bağlanılamadı</div>'+
       '<p class="text-secondary" style="margin-bottom:var(--space-12);">Arka uç servisini başlatıp sayfayı yenileyin:</p>'+
-      '<code>eduroam-nps.exe serve</code>'+
+      '<code>radius-nps.exe serve</code>'+
       '<p class="text-caption" style="margin-top:var(--space-12);">'+esc(e.message)+'</p>';
   }
 }
@@ -1106,11 +1106,9 @@ function renderInsights(d,sm,total){
   }
 
   if(d.byRealm&&d.byRealm.length>0){
-    const externalRealms=d.byRealm.filter(r=>r.Realm&&!r.Realm.toLowerCase().includes('kastamonu'));
-    if(externalRealms.length>0){
-      const extTotal=externalRealms.reduce((a,r)=>a+(+r.Total||0),0);
-      lines.push(`<b>Eduroam Federasyonu:</b> ${externalRealms.length} farklı misafir kurumdan toplam ${fmt(extTotal)} kimlik doğrulama isteği işlendi.`);
-    }
+    const realmTotal=d.byRealm.reduce((a,r)=>a+(+r.Total||0),0);
+    const topR=d.byRealm[0];
+    lines.push(`<b>Etki Alanı (Realm) Dağılımı:</b> ${d.byRealm.length} farklı etki alanından toplam ${fmt(realmTotal)} istek işlendi; en yoğun: <span class="mono">${esc(topR.Realm||'(boş)')}</span> (${fmt(+topR.Total)}).`);
   }
 
   document.getElementById('insights').innerHTML='<div style="display:flex;flex-direction:column;gap:var(--space-12);">'+
@@ -1349,7 +1347,7 @@ async function exportCSV(){
     const csv = '\uFEFF' + await resp.text();
     const a=document.createElement('a');
     a.href=URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8'}));
-    a.download='eduroam_logs_'+new Date().toISOString().slice(0,10)+'.csv';
+    a.download='radius_logs_'+new Date().toISOString().slice(0,10)+'.csv';
     a.click();
     setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
   } catch(e) { alert('CSV indirilemedi: '+e.message); }

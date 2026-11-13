@@ -1,6 +1,6 @@
 # AGENTS.md — AI Ajan ve Geliştirici Rehberi
 
-Bu dosya, **Eduroam NPS Loglama Sistemi (v5.2 — Rust Edition)** reposunda çalışan yapay zeka kodlama ajanları ve geliştiriciler için mimari kuralları, komutları ve güvenlik kısıtlarını tanımlar.
+Bu dosya, **RADIUS NPS Loglama Sistemi (v5.2 — Rust Edition)** reposunda çalışan yapay zeka kodlama ajanları ve geliştiriciler için mimari kuralları, komutları ve güvenlik kısıtlarını tanımlar.
 
 ---
 
@@ -8,9 +8,9 @@ Bu dosya, **Eduroam NPS Loglama Sistemi (v5.2 — Rust Edition)** reposunda çal
 
 Windows Server NPS (Network Policy Server) tarafından üretilen IAS XML formatındaki (`IN{YYMMDD}.log`) RADIUS kimlik doğrulama loglarını ayrıştıran, SQLite (WAL + `mmap` modu) veritabanına kaydeden ve `127.0.0.1:8080` üzerinde çalışan yerleşik HTTP API + Web Dashboard ile görselleştiren yüksek performanslı izleme sistemidir.
 
-- **Çalışma Zamanı:** Rust 2021 (`Cargo.toml`, `axum` + `tokio` + `rusqlite` bundled -> `eduroam-nps.exe`)
-- **Arayüz:** Vanilla JS + HTML5 + CSS3 (**Ember Studio Design System** — `DESIGN.md`, `eduroam_dashboard.html` & `eduroam_dashboard.css`)
-- **Hedef Ortam:** Windows Server 2016+ (varsayılan çalışma dizini: `C:\EduroamLogs\`, varsayılan log dizini: `C:\Windows\System32\LogFiles\`)
+- **Çalışma Zamanı:** Rust 2021 (`Cargo.toml`, `axum` + `tokio` + `rusqlite` bundled -> `radius-nps.exe`)
+- **Arayüz:** Vanilla JS + HTML5 + CSS3 (**Ember Studio Design System** — `DESIGN.md`, `radius_dashboard.html` & `radius_dashboard.css`)
+- **Hedef Ortam:** Windows Server 2016+ (varsayılan çalışma dizini: `C:\RadiusLogs\`, varsayılan log dizini: `C:\Windows\System32\LogFiles\`)
 
 ---
 
@@ -20,14 +20,14 @@ Windows Server NPS (Network Policy Server) tarafından üretilen IAS XML format�
 |---|---|
 | `Cargo.toml` | Rust bağımlılıkları ve `release` profili (`lto = "thin"`, `opt-level = 3`, `strip = true`) |
 | `src/main.rs` | CLI komut satırı arayüzü (`serve`, `collect`, `server`, `setup`, `backfill`, `reset-backfill`, `register-tasks`) ve testler |
-| `src/config.rs` | `eduroam_config.json` okuma, geriye dönük varsayılanlar ve CORS origin doğrulaması (`is_cors_origin_allowed`) |
+| `src/config.rs` | `radius_config.json` okuma, varsayılanlar (`RadiusConfig`) ve CORS origin doğrulaması (`is_cors_origin_allowed`) |
 | `src/parser.rs` | Sıfır-kopya (zero-copy) `<Event>` ayrıştırıcı (`parse_ias_event_line`), `EventHash` (`compute_event_hash`), `LIKE` kaçışı ve CSV formül koruması |
 | `src/db.rs` | SQLite WAL + 512 MB `mmap` bağlantı yönetimi (`open_db`) ve şema migration (`ensure_schema_and_migrate`) |
 | `src/collector.rs` | `FILE_SHARE_READ \| FILE_SHARE_WRITE` ile log okuma, `ByteOffset` takibi, 60sn TTL + `Class`/MAC öncelikli `PT=1` kuyruğu ve batch transaction yazımı |
 | `src/server.rs` | `axum` HTTP sunucusu (`/`, `/style.css`, `/api/charts`, `/api/recent`, `/api/export.csv`) ve atomik nesil takipli `/api/charts` bellek önbelleği |
-| `eduroam_dashboard.html` | 4 sekmeli (Genel Bakış, Log Kayıtları, Analiz, NPS Referans) SPA arayüzü |
-| `eduroam_dashboard.css` | Ember Studio tasarım sistemi (`DESIGN.md` — Terracotta & sıcak taş/krem renk paleti, açık/koyu tema) |
-| `eduroam_config.example.json` | İsteğe bağlı `eduroam_config.json` için örnek yapılandırma şablonu |
+| `radius_dashboard.html` | 4 sekmeli (Genel Bakış, Log Kayıtları, Analiz, NPS Referans) SPA arayüzü |
+| `radius_dashboard.css` | Ember Studio tasarım sistemi (`DESIGN.md` — Terracotta & sıcak taş/krem renk paleti, açık/koyu tema) |
+| `radius_config.example.json` | İsteğe bağlı `radius_config.json` için örnek yapılandırma şablonu |
 | `.github/workflows/ci.yml` | Rust (`cargo test` + `cargo build --release`) CI iş akışı |
 
 ---
@@ -55,7 +55,7 @@ cargo build --release
    - `build_recent_query` (`src/server.rs`) içindeki tüm filtreler parametreli (`?1`, `?2` vb.) çalışmalıdır.
    - `ORDER BY` sütun adları yalnızca beyaz listeden (`Zaman`, `Username`, `Realm`, `ClientIP`, `NASIdentifier`, `CallingStationID`, `Result`, `ReasonCode`) seçilebilir.
 3. **XSS ve CSV Formül Enjeksiyonu Güvenliği:**
-   - `eduroam_dashboard.html` içinde kullanıcıdan/logdan gelen tüm metinler `esc()` fonksiyonundan geçirilmelidir.
+   - `radius_dashboard.html` içinde kullanıcıdan/logdan gelen tüm metinler `esc()` fonksiyonundan geçirilmelidir.
    - CSV dışa aktarımı `/api/export.csv` üzerinden sunucu tarafında yapılmalı ve `=`, `+`, `-`, `@` ile başlayan hücreler `'` ile zırhlanmalıdır (`format_csv_field`).
 4. **Atomik Durum Yazımı ve Dosya Paylaşımı:**
    - NPS aktif olarak log dosyasına yazarken kolektör dosyayı `FILE_SHARE_READ | FILE_SHARE_WRITE` ile açmalıdır.

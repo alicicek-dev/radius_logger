@@ -5,7 +5,7 @@ pub mod parser;
 pub mod server;
 
 use crate::collector::{extract_file_date, run_collector_pass, save_state_atomic};
-use crate::config::{write_setup_config, EduroamConfig};
+use crate::config::{write_setup_config, RadiusConfig};
 use crate::db::{ensure_schema_and_migrate, open_db, reset_tables};
 use crate::server::{build_router, AppState};
 use chrono::{Duration, Local};
@@ -17,12 +17,12 @@ use std::sync::{atomic::AtomicU64, Arc, RwLock};
 
 #[derive(Parser, Debug)]
 #[command(
-    name = "eduroam-nps",
+    name = "radius-nps",
     version = "5.2.0",
-    about = "Eduroam NPS RADIUS Loglama ve Dashboard Sistemi (Rust Edition)"
+    about = "Windows NPS RADIUS Loglama ve Dashboard Sistemi (Rust Edition)"
 )]
 struct Cli {
-    /// Opsiyonel eduroam_config.json dosya yolu
+    /// Opsiyonel radius_config.json dosya yolu
     #[arg(short, long)]
     config: Option<PathBuf>,
 
@@ -42,12 +42,12 @@ enum Commands {
     Collect,
     /// Yalnizca HTTP API ve Dashboard sunucusunu baslatir
     Server,
-    /// Yapilandirma dosyasi (eduroam_config.json) uretir veya SQLite veritabanini kurar/migrate eder
+    /// Yapilandirma dosyasi (radius_config.json) uretir veya SQLite veritabanini kurar/migrate eder
     Setup {
-        /// NPS log klasoru yolu (verilirse yalnizca eduroam_config.json olusturur)
+        /// NPS log klasoru yolu (verilirse yalnizca radius_config.json olusturur)
         #[arg(long)]
         log_dir: Option<String>,
-        /// Yapilandirma dosyasinin yazilacagi yol (varsayilan: C:\EduroamLogs\eduroam_config.json)
+        /// Yapilandirma dosyasinin yazilacagi yol (varsayilan: C:\RadiusLogs\radius_config.json)
         #[arg(long)]
         config_path: Option<PathBuf>,
         /// Mevcut config/DB varsa uzerine yazar
@@ -79,7 +79,7 @@ enum Commands {
 #[tokio::main]
 async fn main() {
     let cli = Cli::parse();
-    let (cfg, config_source) = EduroamConfig::load_with_source(cli.config.as_deref());
+    let (cfg, config_source) = RadiusConfig::load_with_source(cli.config.as_deref());
 
     match cli.command.unwrap_or(Commands::Serve {
         no_collector: false,
@@ -142,7 +142,7 @@ fn check_log_dir(log_dir: &str, config_source: Option<&Path>) -> Result<LogDirCh
     if !path.exists() || !path.is_dir() {
         return Err(format!(
             "Log klasoru bulunamadi: '{}' (kaynak: {}).\n\
-             Cozum: `eduroam-nps.exe setup --log-dir \"<log_klasorunuz>\"` komutunu calistirin veya `eduroam_config.example.json` dosyasini referans alarak `eduroam_config.json` olusturun.",
+             Cozum: `radius-nps.exe setup --log-dir \"<log_klasorunuz>\"` komutunu calistirin veya `radius_config.example.json` dosyasini referans alarak `radius_config.json` olusturun.",
             log_dir, source_desc
         ));
     }
@@ -160,7 +160,7 @@ fn check_log_dir(log_dir: &str, config_source: Option<&Path>) -> Result<LogDirCh
     if !has_logs {
         return Ok(LogDirCheck::EmptyWarning(format!(
             "Log klasorunde henuz eslesen `IN{{YYMMDD}}.log` (IN*.log) dosyasi bulunamadi: '{}' (kaynak: {}).\n\
-             Yeni kurulumda NPS henuz log yazmamis olabilir; farkli bir klasor kullaniyorsaniz `eduroam-nps.exe setup --log-dir \"<log_klasorunuz>\"` komutunu calistirin veya `eduroam_config.example.json` dosyasina bakin.",
+             Yeni kurulumda NPS henuz log yazmamis olabilir; farkli bir klasor kullaniyorsaniz `radius-nps.exe setup --log-dir \"<log_klasorunuz>\"` komutunu calistirin veya `radius_config.example.json` dosyasina bakin.",
             log_dir, source_desc
         )));
     }
@@ -195,8 +195,8 @@ fn run_setup_config(log_dir: &str, config_path: Option<&Path>, force: bool, allo
             let full = display_full_path(&written);
             println!("Yapilandirma dosyasi yazildi: {}", full.display());
             println!("Sonraki adimlar:");
-            println!("  1. Veritabanini hazirlayin : eduroam-nps.exe setup --migrate");
-            println!("  2. Sistemi baslatin        : eduroam-nps.exe");
+            println!("  1. Veritabanini hazirlayin : radius-nps.exe setup --migrate");
+            println!("  2. Sistemi baslatin        : radius-nps.exe");
         }
         Err(e) => {
             eprintln!("[HATA] {}", e);
@@ -205,7 +205,7 @@ fn run_setup_config(log_dir: &str, config_path: Option<&Path>, force: bool, allo
     }
 }
 
-async fn run_http_server(cfg: EduroamConfig, no_collector: bool) {
+async fn run_http_server(cfg: RadiusConfig, no_collector: bool) {
     let db_path = Path::new(&cfg.paths.db_path);
     if let Ok(conn) = open_db(db_path) {
         let _ = ensure_schema_and_migrate(&conn);
@@ -234,7 +234,7 @@ async fn run_http_server(cfg: EduroamConfig, no_collector: bool) {
     };
 
     println!(
-        "Eduroam Dashboard Sunucusu (Rust v5.2) baslatildi: http://{}/",
+        "RADIUS NPS Dashboard Sunucusu (Rust v5.2) baslatildi: http://{}/",
         addr
     );
     if !no_collector {
@@ -257,7 +257,7 @@ async fn run_http_server(cfg: EduroamConfig, no_collector: bool) {
     }
 }
 
-fn run_setup(cfg: &EduroamConfig, force: bool, migrate_only: bool) {
+fn run_setup(cfg: &RadiusConfig, force: bool, migrate_only: bool) {
     let db_path = Path::new(&cfg.paths.db_path);
     if db_path.exists() {
         if migrate_only {
@@ -295,14 +295,14 @@ fn run_setup(cfg: &EduroamConfig, force: bool, migrate_only: bool) {
     println!("Veritabani olusturuldu: {}", db_path.display());
 }
 
-fn run_backfill(cfg: &EduroamConfig, days_back: i64) {
+fn run_backfill(cfg: &RadiusConfig, days_back: i64) {
     let db_path = Path::new(&cfg.paths.db_path);
     let state_path = Path::new(&cfg.paths.state_file);
     let log_dir = Path::new(&cfg.paths.log_dir);
 
     if !db_path.exists() {
         eprintln!(
-            "DB bulunamadi: {}. Once `eduroam-nps setup` calistirin.",
+            "DB bulunamadi: {}. Once `radius-nps setup` calistirin.",
             db_path.display()
         );
         std::process::exit(1);
@@ -349,7 +349,7 @@ fn run_backfill(cfg: &EduroamConfig, days_back: i64) {
     println!("Yeni eklenen kayit     : {}", after - before);
 }
 
-fn run_reset_and_backfill(cfg: &EduroamConfig, days_back: i64, force: bool) {
+fn run_reset_and_backfill(cfg: &RadiusConfig, days_back: i64, force: bool) {
     let db_path = Path::new(&cfg.paths.db_path);
     let state_path = Path::new(&cfg.paths.state_file);
     let log_dir = Path::new(&cfg.paths.log_dir);
@@ -459,7 +459,7 @@ fn run_register_tasks() {
     let exe_path = std::env::current_exe().expect("Calistirilabilir dosya yolu alinamadi");
     let exe_str = exe_path.to_string_lossy();
     let xml = build_scheduled_task_xml(&exe_str);
-    let xml_path = std::env::temp_dir().join(format!("eduroam_task_{}.xml", std::process::id()));
+    let xml_path = std::env::temp_dir().join(format!("radius_task_{}.xml", std::process::id()));
 
     if let Err(e) = fs::write(&xml_path, xml.as_bytes()) {
         eprintln!("Gecici gorev XML dosyasi yazilamadi: {}", e);
@@ -470,7 +470,7 @@ fn run_register_tasks() {
         .args([
             "/Create",
             "/TN",
-            "EduroamDashboardServer",
+            "RadiusDashboardServer",
             "/XML",
             &xml_path.to_string_lossy(),
             "/F",
@@ -482,7 +482,7 @@ fn run_register_tasks() {
     match status {
         Ok(s) if s.success() => {
             println!(
-                "Gorev kaydedildi: EduroamDashboardServer ({} serve - ONSTART / SYSTEM / PT0S)",
+                "Gorev kaydedildi: RadiusDashboardServer ({} serve - ONSTART / SYSTEM / PT0S)",
                 exe_str
             );
         }
@@ -506,18 +506,18 @@ mod tests {
 
     #[test]
     fn test_scheduled_task_xml_uses_pt0s_and_escapes_path() {
-        let xml = build_scheduled_task_xml(r#"C:\Eduroam & Logs\eduroam-nps.exe"#);
+        let xml = build_scheduled_task_xml(r#"C:\Radius & Logs\radius-nps.exe"#);
         assert!(xml.contains("<ExecutionTimeLimit>PT0S</ExecutionTimeLimit>"));
         assert!(xml.contains("<BootTrigger>"));
         assert!(xml.contains("<UserId>S-1-5-18</UserId>"));
         assert!(xml.contains("<RunLevel>HighestAvailable</RunLevel>"));
         assert!(xml.contains("<Arguments>serve</Arguments>"));
-        assert!(xml.contains(r#"<Command>C:\Eduroam &amp; Logs\eduroam-nps.exe</Command>"#));
+        assert!(xml.contains(r#"<Command>C:\Radius &amp; Logs\radius-nps.exe</Command>"#));
     }
 
     #[test]
     fn test_check_log_dir_reports_missing_empty_and_ready() {
-        let dir = std::env::temp_dir().join(format!("eduroam_chk_dir_{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("radius_chk_dir_{}", std::process::id()));
         let _ = fs::remove_dir_all(&dir);
 
         // 1. Missing directory -> Err with searched path, source, setup command, example json
@@ -526,17 +526,17 @@ mod tests {
         assert!(err.contains(&missing.to_string_lossy().to_string()));
         assert!(err.contains("kod ici varsayilan"));
         assert!(err.contains("setup --log-dir"));
-        assert!(err.contains("eduroam_config.example.json"));
+        assert!(err.contains("radius_config.example.json"));
 
         // 2. Existing empty directory -> EmptyWarning citing config source
         fs::create_dir_all(&dir).unwrap();
-        let src_cfg = PathBuf::from(r"C:\EduroamLogs\eduroam_config.json");
+        let src_cfg = PathBuf::from(r"C:\RadiusLogs\radius_config.json");
         match check_log_dir(&dir.to_string_lossy(), Some(&src_cfg)).unwrap() {
             LogDirCheck::EmptyWarning(msg) => {
                 assert!(msg.contains(&dir.to_string_lossy().to_string()));
-                assert!(msg.contains("eduroam_config.json"));
+                assert!(msg.contains("radius_config.json"));
                 assert!(msg.contains("setup --log-dir"));
-                assert!(msg.contains("eduroam_config.example.json"));
+                assert!(msg.contains("radius_config.example.json"));
             }
             LogDirCheck::Ready => panic!("Bos klasorde uyari donmeliydi"),
         }

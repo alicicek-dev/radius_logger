@@ -1,4 +1,4 @@
-use crate::config::EduroamConfig;
+use crate::config::RadiusConfig;
 use crate::db::open_db;
 use crate::parser::{format_csv_field, to_sql_like_pattern};
 use axum::{
@@ -20,11 +20,11 @@ use std::sync::{
 };
 use std::time::{Instant, SystemTime};
 
-const EMBEDDED_HTML: &str = include_str!("../eduroam_dashboard.html");
-const EMBEDDED_CSS: &str = include_str!("../eduroam_dashboard.css");
+const EMBEDDED_HTML: &str = include_str!("../radius_dashboard.html");
+const EMBEDDED_CSS: &str = include_str!("../radius_dashboard.css");
 
 pub struct AppState {
-    pub config: EduroamConfig,
+    pub config: RadiusConfig,
     pub db_generation: Arc<AtomicU64>,
     pub charts_cache: RwLock<Option<CachedCharts>>,
 }
@@ -398,7 +398,7 @@ fn resolve_asset_path(data_dir: &str, filename: &str) -> Option<PathBuf> {
 
 async fn handle_index(State(state): State<Arc<AppState>>, headers: HeaderMap) -> impl IntoResponse {
     let bytes = if let Some(path) =
-        resolve_asset_path(&state.config.paths.data_dir, "eduroam_dashboard.html")
+        resolve_asset_path(&state.config.paths.data_dir, "radius_dashboard.html")
     {
         fs::read(path).unwrap_or_else(|_| EMBEDDED_HTML.as_bytes().to_vec())
     } else {
@@ -416,7 +416,7 @@ async fn handle_index(State(state): State<Arc<AppState>>, headers: HeaderMap) ->
 
 async fn handle_css(State(state): State<Arc<AppState>>, headers: HeaderMap) -> impl IntoResponse {
     let bytes = if let Some(path) =
-        resolve_asset_path(&state.config.paths.data_dir, "eduroam_dashboard.css")
+        resolve_asset_path(&state.config.paths.data_dir, "radius_dashboard.css")
     {
         fs::read(path).unwrap_or_else(|_| EMBEDDED_CSS.as_bytes().to_vec())
     } else {
@@ -867,7 +867,7 @@ mod tests {
 
     #[tokio::test]
     async fn router_serves_charts_recent_csv_cors_and_404() {
-        let dir = std::env::temp_dir().join(format!("eduroam_http_test_{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("radius_http_test_{}", std::process::id()));
         let _ = fs::remove_dir_all(&dir);
         fs::create_dir_all(&dir).unwrap();
         let db_path = dir.join("http_test.db");
@@ -876,7 +876,7 @@ mod tests {
         ensure_schema_and_migrate(&conn).unwrap();
         conn.execute(
             "INSERT INTO AuthLog (TimeCreated, FullUsername, Username, Realm, ClientIP, NASIdentifier, CallingStationID, Result, ReasonCode, Reason, EventHash)
-             VALUES (datetime('now'), 'ali@kastamonu.edu.tr', 'ali', 'kastamonu.edu.tr', '10.0.0.1', 'AP-1', 'AA-BB-CC-DD-EE-01', 'SUCCESS', 0, 'Basari', 'h-ok')",
+             VALUES (datetime('now'), 'ali@kurum.edu.tr', 'ali', 'kurum.edu.tr', '10.0.0.1', 'AP-1', 'AA-BB-CC-DD-EE-01', 'SUCCESS', 0, 'Basari', 'h-ok')",
             [],
         ).unwrap();
         conn.execute(
@@ -886,7 +886,7 @@ mod tests {
         ).unwrap();
         drop(conn);
 
-        let mut cfg = EduroamConfig::default();
+        let mut cfg = RadiusConfig::default();
         cfg.paths.data_dir = dir.to_string_lossy().to_string();
         cfg.paths.db_path = db_path.to_string_lossy().to_string();
         cfg.server.enable_cors = true;
@@ -906,7 +906,7 @@ mod tests {
 
         let index_res = http_get(addr, "/", None).await;
         assert!(index_res.starts_with("HTTP/1.1 200 OK"));
-        assert!(index_res.contains("Eduroam NPS"));
+        assert!(index_res.contains("RADIUS NPS"));
 
         let charts_ok = http_get(addr, "/api/charts?days=365", Some("http://127.0.0.1:3000")).await;
         assert!(charts_ok.starts_with("HTTP/1.1 200 OK"));
@@ -942,7 +942,7 @@ mod tests {
     fn test_parameterized_recent_query_and_limits() {
         let mut q = HashMap::new();
         q.insert("username".to_string(), "a%' OR 1=1 --".to_string());
-        q.insert("realm".to_string(), "kastamonu.edu.tr".to_string());
+        q.insert("realm".to_string(), "kurum.edu.tr".to_string());
         q.insert("rc".to_string(), "16".to_string());
         q.insert("sort".to_string(), "Username".to_string());
         q.insert("dir".to_string(), "asc".to_string());
@@ -991,7 +991,7 @@ mod tests {
                 log_id: 1,
                 zaman: "2026-11-07 10:00:00".to_string(),
                 username: "testuser".to_string(),
-                realm: "kastamonu.edu.tr".to_string(),
+                realm: "kurum.edu.tr".to_string(),
                 client_ip: "10.0.0.1".to_string(),
                 nas_identifier: "AP-Floor-1".to_string(),
                 calling_station_id: "AA-BB-CC-DD-EE-FF".to_string(),

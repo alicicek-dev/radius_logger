@@ -7,7 +7,7 @@
 last_run.txt
 *.log
 *.old.log
-eduroam_config.json
+radius_config.json
 .ctx/
 
 # Rust derleme çıktıları

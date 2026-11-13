@@ -1,4 +1,4 @@
-use crate::config::EduroamConfig;
+use crate::config::RadiusConfig;
 use crate::db::{ensure_schema_and_migrate, open_db};
 use crate::parser::{
     compute_event_hash, get_reason_text, parse_ias_event_line, parse_ias_timestamp, split_username,
@@ -84,7 +84,7 @@ ON CONFLICT(MACAddress) DO UPDATE SET
     LastResult = CASE WHEN excluded.LastSeen >= Devices.LastSeen THEN excluded.LastResult ELSE Devices.LastResult END
 ";
 
-pub fn write_collector_log(cfg: &EduroamConfig, level: &str, msg: &str) {
+pub fn write_collector_log(cfg: &RadiusConfig, level: &str, msg: &str) {
     let log_path = Path::new(&cfg.paths.error_log);
     if let Some(dir) = log_path.parent() {
         if !dir.as_os_str().is_empty() && !dir.exists() {
@@ -264,7 +264,7 @@ fn match_pending_request(
 /// Runs a collection pass across all IAS log files from `last_run.txt` forward.
 /// Returns the total number of newly inserted records.
 pub fn run_collector_pass(
-    cfg: &EduroamConfig,
+    cfg: &RadiusConfig,
     db_generation: Option<&AtomicU64>,
     verbose: bool,
 ) -> Result<usize, String> {
@@ -669,7 +669,7 @@ pub fn run_collector_pass(
 fn flush_batch(
     conn: &mut rusqlite::Connection,
     batch: &[CompletedAuthRecord],
-    cfg: &EduroamConfig,
+    cfg: &RadiusConfig,
 ) -> Result<usize, String> {
     let tx = conn
         .transaction()
@@ -797,13 +797,13 @@ mod tests {
 
     #[test]
     fn log_rotation_moves_oversized_file_to_old_log() {
-        let dir = std::env::temp_dir().join(format!("eduroam_log_rot_{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("radius_log_rot_{}", std::process::id()));
         let _ = fs::remove_dir_all(&dir);
         fs::create_dir_all(&dir).unwrap();
         let log_path = dir.join("collector_errors.log");
         let old_path = dir.join("collector_errors.old.log");
 
-        let mut cfg = EduroamConfig::default();
+        let mut cfg = RadiusConfig::default();
         cfg.paths.error_log = log_path.to_string_lossy().to_string();
         cfg.collector.max_log_mb = 1;
 
@@ -820,8 +820,7 @@ mod tests {
 
     #[test]
     fn test_end_to_end_collector_and_byte_offset_resume() {
-        let tmp_dir =
-            std::env::temp_dir().join(format!("eduroam_rust_test_{}", std::process::id()));
+        let tmp_dir = std::env::temp_dir().join(format!("radius_rust_test_{}", std::process::id()));
         let _ = fs::remove_dir_all(&tmp_dir);
         fs::create_dir_all(&tmp_dir).unwrap();
 
@@ -830,7 +829,7 @@ mod tests {
         let state_file = tmp_dir.join("last_run.txt");
         let err_file = tmp_dir.join("errors.log");
 
-        let mut cfg = EduroamConfig::default();
+        let mut cfg = RadiusConfig::default();
         cfg.paths.log_dir = tmp_dir.to_string_lossy().to_string();
         cfg.paths.data_dir = tmp_dir.to_string_lossy().to_string();
         cfg.paths.db_path = db_file.to_string_lossy().to_string();
@@ -839,7 +838,7 @@ mod tests {
         cfg.collector.retention_days = 36500;
 
         let initial_lines = concat!(
-            "<Event><Timestamp>06/08/2026 10:00:01.000</Timestamp><Packet-Type>1</Packet-Type><User-Name>user1@kastamonu.edu.tr</User-Name><Client-IP-Address>10.1.1.1</Client-IP-Address><Calling-Station-Id>aa-bb-cc-dd-ee-01</Calling-Station-Id><NAS-Identifier>AP-1</NAS-Identifier></Event>\r\n",
+            "<Event><Timestamp>06/08/2026 10:00:01.000</Timestamp><Packet-Type>1</Packet-Type><User-Name>user1@kurum.edu.tr</User-Name><Client-IP-Address>10.1.1.1</Client-IP-Address><Calling-Station-Id>aa-bb-cc-dd-ee-01</Calling-Station-Id><NAS-Identifier>AP-1</NAS-Identifier></Event>\r\n",
             "<Event><Timestamp>06/08/2026 10:00:02.000</Timestamp><Packet-Type>2</Packet-Type><Client-IP-Address>10.1.1.1</Client-IP-Address><Calling-Station-Id>aa-bb-cc-dd-ee-01</Calling-Station-Id></Event>\r\n"
         );
         fs::write(&log_file, initial_lines).unwrap();
@@ -862,7 +861,7 @@ mod tests {
         let mut f = OpenOptions::new().append(true).open(&log_file).unwrap();
         writeln!(
             f,
-            "<Event><Timestamp>06/08/2026 10:05:00.000</Timestamp><Packet-Type>3</Packet-Type><User-Name>user2@kastamonu.edu.tr</User-Name><Client-IP-Address>10.1.1.1</Client-IP-Address><Calling-Station-Id>aa-bb-cc-dd-ee-02</Calling-Station-Id><Reason-Code>16</Reason-Code></Event>"
+            "<Event><Timestamp>06/08/2026 10:05:00.000</Timestamp><Packet-Type>3</Packet-Type><User-Name>user2@kurum.edu.tr</User-Name><Client-IP-Address>10.1.1.1</Client-IP-Address><Calling-Station-Id>aa-bb-cc-dd-ee-02</Calling-Station-Id><Reason-Code>16</Reason-Code></Event>"
         )
         .unwrap();
         drop(f);
@@ -901,7 +900,7 @@ mod tests {
 
     #[test]
     fn test_state_roundtrip_and_atomic_tmp_cleanup() {
-        let dir = std::env::temp_dir().join(format!("eduroam_state_test_{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("radius_state_test_{}", std::process::id()));
         let _ = fs::remove_dir_all(&dir);
         let state = dir.join("last_run.txt");
         let ts = NaiveDate::from_ymd_opt(2026, 11, 7)
@@ -921,13 +920,13 @@ mod tests {
     #[test]
     fn test_retention_prunes_old_records_only() {
         let dir =
-            std::env::temp_dir().join(format!("eduroam_retention_test_{}", std::process::id()));
+            std::env::temp_dir().join(format!("radius_retention_test_{}", std::process::id()));
         let _ = fs::remove_dir_all(&dir);
         fs::create_dir_all(&dir).unwrap();
         let db_file = dir.join("test.db");
         let state_file = dir.join("last_run.txt");
 
-        let mut cfg = EduroamConfig::default();
+        let mut cfg = RadiusConfig::default();
         assert_eq!(cfg.collector.retention_days, 365);
         cfg.paths.log_dir = dir.to_string_lossy().to_string();
         cfg.paths.data_dir = dir.to_string_lossy().to_string();
@@ -938,7 +937,7 @@ mod tests {
 
         fs::write(
             dir.join("IN260608.log"),
-            "<Event><Timestamp>06/08/2026 10:00:01.000</Timestamp><Packet-Type>3</Packet-Type><User-Name>u@kastamonu.edu.tr</User-Name><Client-IP-Address>10.1.1.1</Client-IP-Address><Reason-Code>16</Reason-Code></Event>\r\n",
+            "<Event><Timestamp>06/08/2026 10:00:01.000</Timestamp><Packet-Type>3</Packet-Type><User-Name>u@kurum.edu.tr</User-Name><Client-IP-Address>10.1.1.1</Client-IP-Address><Reason-Code>16</Reason-Code></Event>\r\n",
         )
         .unwrap();
         let start = NaiveDate::from_ymd_opt(2026, 6, 8)

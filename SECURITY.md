@@ -1,6 +1,6 @@
 # Güvenlik Politikası ve Mimari Kontroller (`SECURITY.md`)
 
-Bu belge, **Eduroam NPS Loglama Sistemi (v5.2 — Rust Edition)** içindeki güvenlik kontrollerini, veri gizliliği gereksinimlerini ve güvenlik açığı bildirim sürecini açıklar.
+Bu belge, **RADIUS NPS Loglama Sistemi (v5.2 — Rust Edition)** içindeki güvenlik kontrollerini, veri gizliliği gereksinimlerini ve güvenlik açığı bildirim sürecini açıklar.
 
 ---
 
@@ -17,7 +17,7 @@ Bu belge, **Eduroam NPS Loglama Sistemi (v5.2 — Rust Edition)** içindeki güv
 - **Üst Sınır Koruması (DoS Önleme):** Sayfa başına kayıt sayısı `maxPageLimit` (`1000`) ve CSV dışa aktarım satır sayısı `maxExportRows` (`10000`) ile sınırlandırılmıştır.
 
 ### 1.3 XSS ve CSV Formül Enjeksiyonu Güvenliği
-- **HTML Escape (`esc`):** `eduroam_dashboard.html` içinde API'den dönen tüm kullanıcı adları, realm değerleri, MAC adresleri, NAS kimlikleri ve grafik etiketleri DOM'a yazılmadan önce `esc()` fonksiyonundan geçirilir.
+- **HTML Escape (`esc`):** `radius_dashboard.html` içinde API'den dönen tüm kullanıcı adları, realm değerleri, MAC adresleri, NAS kimlikleri ve grafik etiketleri DOM'a yazılmadan önce `esc()` fonksiyonundan geçirilir.
 - **Sunucu Taraflı CSV ve Formül Koruması:** CSV dışa aktarımı `format_csv_field` (`src/parser.rs`) ile çift tırnak kaçışı uygulanarak ve `=`, `+`, `-`, `@`, `\t`, `\r` ile başlayan hücrelerin önüne `'` eklenerek sunucu tarafında üretilir.
 
 ### 1.4 Derleme ve Çalışma Zamanı Güvenliği
@@ -30,11 +30,11 @@ Bu belge, **Eduroam NPS Loglama Sistemi (v5.2 — Rust Edition)** içindeki güv
 - **Kişisel Veriler:** `AuthLog` ve `Devices` tabloları kullanıcı kimliği (`Username`, `FullUsername`), kurum bilgisi (`Realm`), erişim noktası IP adresi (`ClientIP`) ve cihaz MAC adresi (`CallingStationID`) içerir.
 - **Otomatik Veri Temizleme (Retention):** Kolektör her çalışmada `collector.retentionDays` (varsayılan `365` gün) süresinden eski `AuthLog` kayıtlarını otomatik olarak siler.
 - **Depolama Güvenliği:**
-  - `.gitignore` dosyası `*.db`, `*.db-wal`, `*.db-shm`, `*.log`, `last_run.txt` ve `eduroam_config.json` dosyalarının git deposuna eklenmesini engeller.
-  - Sunucu üzerinde `C:\EduroamLogs\` dizin izinlerinin yalnızca `NT AUTHORITY\SYSTEM` ve yetkili sistem yöneticilerine açık olması ve disk şifrelemesinin (BitLocker) aktif tutulması önerilir.
+  - `.gitignore` dosyası `*.db`, `*.db-wal`, `*.db-shm`, `*.log`, `last_run.txt` ve `radius_config.json` dosyalarının git deposuna eklenmesini engeller.
+  - Sunucu üzerinde `C:\RadiusLogs\` dizin izinlerinin yalnızca `NT AUTHORITY\SYSTEM` ve yetkili sistem yöneticilerine açık olması ve disk şifrelemesinin (BitLocker) aktif tutulması önerilir.
 
 ---
 
 ## 3. Güvenlik Açığı Bildirimi
 
-Sistemde bir güvenlik zaafiyeti tespit ederseniz lütfen herkese açık bir Issue açmak yerine doğrudan **Kastamonu Üniversitesi Bilgi İşlem Daire Başkanlığı** ağ/sistem yönetimi ekibiyle iletişime geçin.
+Sistemde bir güvenlik zafiyeti tespit ederseniz lütfen herkese açık bir Issue açmak yerine depo sahibiyle GitHub Security Advisories veya doğrudan iletişim kanalı üzerinden iletişime geçin.

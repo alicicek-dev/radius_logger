@@ -1,10 +1,10 @@
 {
   "paths": {
     "logDir": "C:\\NPSLogs",
-    "dataDir": "C:\\EduroamLogs",
-    "dbPath": "C:\\EduroamLogs\\eduroam_logs.db",
-    "stateFile": "C:\\EduroamLogs\\last_run.txt",
-    "errorLog": "C:\\EduroamLogs\\collector_errors.log"
+    "dataDir": "C:\\RadiusLogs",
+    "dbPath": "C:\\RadiusLogs\\radius_logs.db",
+    "stateFile": "C:\\RadiusLogs\\last_run.txt",
+    "errorLog": "C:\\RadiusLogs\\collector_errors.log"
   },
   "server": {
     "host": "127.0.0.1",

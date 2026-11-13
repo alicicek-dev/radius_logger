@@ -118,7 +118,7 @@ pub fn parse_ias_event_line(line: &str) -> IasEventFields<'_> {
 }
 
 /// Splits `FullUsername` into `(Username, Realm)`.
-/// Matches PowerShell `Split-EduroamUsername` behavior (`^(.+)@(.+)$` -> greedy first part, so last `@` splits).
+/// Greedy first part (`^(.+)@(.+)$`), so the last `@` separates username and realm.
 pub fn split_username(full_username: &str) -> (String, String) {
     let trimmed = full_username.trim();
     if trimmed.is_empty() {
@@ -135,7 +135,7 @@ pub fn split_username(full_username: &str) -> (String, String) {
     (trimmed.to_string(), String::new())
 }
 
-/// Computes the exact SHA-256 `EventHash` compatible with `Get-EduroamEventHash` in `Eduroam-Common.ps1`.
+/// Computes the deterministic SHA-256 `EventHash` for deduplication.
 /// Input format MUST remain `"{source_file}\n{source_line}\n{raw_line}"`.
 pub fn compute_event_hash(source_file: &str, source_line: usize, raw_line: &str) -> String {
     let mut hasher = Sha256::new();
@@ -292,10 +292,10 @@ mod tests {
 
     #[test]
     fn test_parses_ias_xml_fields() {
-        let line = r#"<Event><Timestamp data_type="4">06/08/2026 10:11:12.123</Timestamp><Packet-Type data_type="0">3</Packet-Type><User-Name data_type="1">ali@kastamonu.edu.tr</User-Name><Client-IP-Address data_type="3">10.0.0.1</Client-IP-Address><Reason-Code data_type="0">16</Reason-Code></Event>"#;
+        let line = r#"<Event><Timestamp data_type="4">06/08/2026 10:11:12.123</Timestamp><Packet-Type data_type="0">3</Packet-Type><User-Name data_type="1">ali@kurum.edu.tr</User-Name><Client-IP-Address data_type="3">10.0.0.1</Client-IP-Address><Reason-Code data_type="0">16</Reason-Code></Event>"#;
         let fields = parse_ias_event_line(line);
         assert_eq!(fields.packet_type, "3");
-        assert_eq!(fields.user_name, "ali@kastamonu.edu.tr");
+        assert_eq!(fields.user_name, "ali@kurum.edu.tr");
         assert_eq!(fields.client_ip, "10.0.0.1");
         assert_eq!(fields.reason_code, "16");
         let ts = parse_ias_timestamp(fields.timestamp).expect("valid timestamp");
@@ -307,9 +307,9 @@ mod tests {
 
     #[test]
     fn test_splits_usernames() {
-        let (u1, r1) = split_username("ali@kastamonu.edu.tr");
+        let (u1, r1) = split_username("ali@kurum.edu.tr");
         assert_eq!(u1, "ali");
-        assert_eq!(r1, "kastamonu.edu.tr");
+        assert_eq!(r1, "kurum.edu.tr");
 
         let (u2, r2) = split_username("localuser");
         assert_eq!(u2, "localuser");
@@ -329,8 +329,8 @@ mod tests {
             ("@realm".to_string(), String::new())
         );
         assert_eq!(
-            split_username("john.doe@sub.kastamonu.edu.tr"),
-            ("john.doe".to_string(), "sub.kastamonu.edu.tr".to_string())
+            split_username("john.doe@sub.kurum.edu.tr"),
+            ("john.doe".to_string(), "sub.kurum.edu.tr".to_string())
         );
         assert_eq!(
             split_username("user@inner@domain.com"),

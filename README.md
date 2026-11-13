@@ -1,8 +1,6 @@
-# Eduroam NPS Loglama Sistemi (v5.2 — Rust Edition)
+# Windows RADIUS / NPS Loglama Sistemi (v5.2 — Rust Edition)
 
-Windows NPS (Network Policy Server) üzerindeki eduroam RADIUS kimlik doğrulama loglarını (`IN{YYMMDD}.log`) ayrıştırarak SQLite (WAL + `mmap`) veritabanına aktaran ve `127.0.0.1:8080` üzerinde çalışan yüksek performanslı HTTP API + Web Dashboard ile gerçek zamanlı izlenebilir hale getiren sistem.
-
-**Kastamonu Üniversitesi — Bilgi İşlem Daire Başkanlığı**
+Windows Server NPS (Network Policy Server) üzerindeki tüm RADIUS kimlik doğrulama loglarını (`IN{YYMMDD}.log` — Wi-Fi, 802.1X, VPN, eduroam vb.) ayrıştırarak SQLite (WAL + `mmap`) veritabanına aktaran ve `127.0.0.1:8080` üzerinde çalışan yüksek performanslı HTTP API + Web Dashboard ile gerçek zamanlı izlenebilir hale getiren sistem.
 
 ## Dokümantasyon Haritası
 
@@ -20,19 +18,19 @@ Windows NPS (Network Policy Server) üzerindeki eduroam RADIUS kimlik doğrulama
 NPS IAS logları (IN{YYMMDD}.log)
         | FILE_SHARE_READ | FILE_SHARE_WRITE + ByteOffset Seek
         v
-eduroam-nps.exe (Rust - Tokio + Axum + Bundled SQLite)
+radius-nps.exe (Rust - Tokio + Axum + Bundled SQLite)
   ├─ [Collector Thread]
   │    ├─ Zero-copy IAS XML ayrıştırıcı
   │    ├─ PT=1 -> Client-IP + Class/MAC öncelikli + 60sn TTL kuyruk
   │    ├─ PT=2 -> SUCCESS / PT=3 -> FAILURE
   │    └─ 2000'lik Batch Transaction + EventHash (SHA-256)
   │
-  ├─ [SQLite Veritabanı: eduroam_logs.db]
+  ├─ [SQLite Veritabanı: radius_logs.db]
   │    └─ WAL Modu + 512 MB mmap + 64 MB Page Cache
   │
   └─ [Axum Async HTTP Sunucusu: 127.0.0.1:8080]
-       ├─ GET /               (eduroam_dashboard.html - disk veya gömülü)
-       ├─ GET /style.css      (eduroam_dashboard.css - disk veya gömülü)
+       ├─ GET /               (radius_dashboard.html - disk veya gömülü)
+       ├─ GET /style.css      (radius_dashboard.css - disk veya gömülü)
        ├─ GET /api/charts     (Atomik nesil takipli RAM önbelleği <50 µs)
        ├─ GET /api/recent     (Parametreli, indeksli sayfalama)
        └─ GET /api/export.csv (Formül enjeksiyonu korumalı CSV export)
@@ -44,59 +42,59 @@ eduroam-nps.exe (Rust - Tokio + Axum + Bundled SQLite)
 |---|---|
 | `Cargo.toml` | Rust paket ve bağımlılık yapılandırması (`axum`, `tokio`, `rusqlite` bundled, `clap`, `sha2`, `chrono`) |
 | `src/main.rs` | CLI giriş noktası (`serve`, `collect`, `server`, `setup`, `backfill`, `reset-backfill`, `register-tasks`) ve testler |
-| `src/config.rs` | `eduroam_config.json` yükleyici ve CORS doğrulayıcı |
+| `src/config.rs` | `radius_config.json` yükleyici (`RadiusConfig`) ve CORS doğrulayıcı |
 | `src/parser.rs` | Sıfır-kopya (zero-copy) IAS XML ayrıştırıcı, `EventHash` (SHA-256), `LIKE` ve CSV formül kaçış yardımcıları |
 | `src/db.rs` | SQLite WAL + `mmap` bağlantı yöneticisi ve otomatik şema migration (`ensure_schema_and_migrate`) |
 | `src/collector.rs` | Byte-offset takipli, TTL + MAC/Class eşleştirmeli yüksek hızlı log kolektörü |
 | `src/server.rs` | Bellek içi grafik önbellekli Axum HTTP API sunucusu ve gömülü (embedded) arayüz sunumu |
-| `eduroam_dashboard.html` / `.css` | **Ember Studio** (`DESIGN.md`) tasarım sistemine sahip 4 sekmeli web arayüzü |
-| `eduroam_config.example.json` | İsteğe bağlı yapılandırma dosyası örneği (`eduroam_config.json`) |
+| `radius_dashboard.html` / `.css` | **Ember Studio** (`DESIGN.md`) tasarım sistemine sahip 4 sekmeli web arayüzü |
+| `radius_config.example.json` | İsteğe bağlı yapılandırma dosyası örneği (`radius_config.json`) |
 
 ## Kurulum ve Kullanım
 
 ### 1. Derleme
 ```powershell
 cargo build --release
-# Çıktı: target\release\eduroam-nps.exe
+# Çıktı: target\release\radius-nps.exe
 ```
 
 ### 2. Kurulum Adımları
-`eduroam-nps.exe` harici hiçbir DLL veya SQLite kurulumu gerektirmez:
+`radius-nps.exe` harici hiçbir DLL veya SQLite kurulumu gerektirmez:
 
 1. **NPS Log Konumunu Kontrol Edin:** Windows Server NPS varsayılan olarak günlük `IN{YYMMDD}.log` dosyalarını `C:\Windows\System32\LogFiles` klasörüne yazar. Logları farklı bir klasöre yönlendirdiyseniz (ör. `C:\NPSLogs`), tek komutla yapılandırma oluşturun:
    ```powershell
-   .\eduroam-nps.exe setup --log-dir "C:\NPSLogs"
+   .\radius-nps.exe setup --log-dir "C:\NPSLogs"
    ```
-   *(Varsayılan olarak `C:\EduroamLogs\eduroam_config.json` dosyasını üretir; hedef dosya varsa `--force` olmadan üzerine yazmaz.)*
+   *(Varsayılan olarak `C:\RadiusLogs\radius_config.json` dosyasını üretir; hedef dosya varsa `--force` olmadan üzerine yazmaz.)*
 2. **Veritabanını Hazırlayın:**
    ```powershell
-   .\eduroam-nps.exe setup --migrate
+   .\radius-nps.exe setup --migrate
    ```
 3. **Çalıştırın / Zamanlanmış Görevi Kaydedin:**
    ```powershell
    # İsteğe bağlı: Mevcut DB'yi silmeden son 90 günü tara (Append-Only Backfill)
-   .\eduroam-nps.exe backfill --days 90
+   .\radius-nps.exe backfill --days 90
 
    # Arka plan log toplayıcı + HTTP Dashboard sunucusu (argümansız varsayılan mod)
-   .\eduroam-nps.exe
+   .\radius-nps.exe
 
    # Windows başlangıcında ExecutionTimeLimit=PT0S (sınırsız) ile otomatik çalışacak görevi kaydet (Yönetici olarak)
-   .\eduroam-nps.exe register-tasks
+   .\radius-nps.exe register-tasks
 
    # Yalnızca tek seferlik log toplama çalıştırıp çıkmak için:
-   .\eduroam-nps.exe collect
+   .\radius-nps.exe collect
    ```
 
 ### 3. Yapılandırma, Arama Sırası ve Kısmi JSON
 * **Arama Sırası:** Uygulama açılışta şu sırayla yapılandırma arar (ilk bulduğunu kullanır, hiçbiri yoksa kod içi varsayılanlarla çalışır):
   1. `--config <dosya>` parametresi (verilmişse)
-  2. `C:\EduroamLogs\eduroam_config.json`
-  3. `<exe_klasörü>\eduroam_config.json`
-  4. `.\eduroam_config.json`
+  2. `C:\RadiusLogs\radius_config.json`
+  3. `<exe_klasörü>\radius_config.json`
+  4. `.\radius_config.json`
 * **Kısmi JSON Desteği:** Dosyaya yalnızca değiştirmek istediğiniz alanları yazmanız yeterlidir; eksik bırakılan tüm alanlar kod içi varsayılan değerlerde kalır.
-* **Alan Açıklamaları ([`eduroam_config.example.json`](./eduroam_config.example.json)):**
+* **Alan Açıklamaları ([`radius_config.example.json`](./radius_config.example.json)):**
   * `paths.logDir`: NPS `IN{YYMMDD}.log` dosyalarının bulunduğu klasör (varsayılan: `C:\Windows\System32\LogFiles`).
-  * `paths.dataDir` / `dbPath` / `stateFile` / `errorLog`: SQLite DB, `last_run.txt` ve `collector_errors.log` konumları (`C:\EduroamLogs\`).
+  * `paths.dataDir` / `dbPath` / `stateFile` / `errorLog`: SQLite DB (`radius_logs.db`), `last_run.txt` ve `collector_errors.log` konumları (`C:\RadiusLogs\`).
   * `server.*`: Dinleme adresi/portu (`127.0.0.1:8080`), varsayılan gün sayısı, CORS beyaz listesi (`enableCors`, `allowedOrigins`), sayfalama ve CSV dışa aktarım limitleri.
   * `collector.retentionDays`: `AuthLog` kayıtlarının saklanma süresi (varsayılan: **365 gün**; Web Dashboard dönem seçicisi `7 / 14 / 30 / 90 / 180 / 365` gün aralıklarını destekler).
   * `collector.batchSize` / `pollIntervalSeconds` / `pendingTtlSeconds` / `maxLogMB`: Toplama periyodu, bellek kuyruğu TTL ve hata günlüğü rotasyon boyutu.
@@ -106,10 +104,10 @@ cargo build --release
 * **Gizlilik Notu:** RADIUS logları kullanıcı adı, IP adresi ve MAC adresi gibi kişisel veriler içerir. KVKK/GDPR kapsamında saklama süresi (`collector.retentionDays`), veritabanı erişim izinleri ve disk güvenliği sorumluluğu sistem yöneticisine aittir.
 
 ### 5. Yükseltme Notu
-* Bu sürümde kod içi varsayılan `paths.logDir` değeri jenerik NPS yolu olan `C:\Windows\System32\LogFiles` olarak güncellenmiştir.
-* Önceki sürümlerden yükseltme yaparken özel bir log klasörü kullanıp henüz `eduroam_config.json` oluşturmamış sistemlerde, yeni `.exe` devreye alınmadan **önce** yapılandırma dosyası üretilmelidir:
+* Bu sürümde proje tüm Windows RADIUS / NPS kurulumları için genelleştirilmiştir: ikili dosya `radius-nps.exe`, varsayılan çalışma dizini `C:\RadiusLogs\`, yapılandırma dosyası `radius_config.json`, veritabanı `radius_logs.db` ve zamanlanmış görev adı `RadiusDashboardServer` olmuştur (`paths.logDir` varsayılanı: `C:\Windows\System32\LogFiles`).
+* Eski sürümlerden (`eduroam-nps.exe` / `C:\EduroamLogs\`) geçiş yaparken verilerinizi korumak için mevcut veri klasörünüzü `C:\RadiusLogs\` altına taşıyıp `eduroam_logs.db` → `radius_logs.db` ve `eduroam_config.json` → `radius_config.json` olarak yeniden adlandırın (veya `radius_config.json` üretmek için aşağıdaki komutu çalıştırın):
   ```powershell
-  .\eduroam-nps.exe setup --log-dir "<mevcut_log_klasorunuz>"
+  .\radius-nps.exe setup --log-dir "<mevcut_log_klasorunuz>"
   ```
 
 ## Test ve Doğrulama
