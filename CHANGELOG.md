@@ -23,6 +23,9 @@ Bu projedeki tüm önemli değişiklikler bu dosyada belgelenmektedir.
   - `renderInsights` içindeki `Username`, `Realm` ve `NASIdentifier` çıktıları `esc()` fonksiyonundan geçirilerek DOM XSS riski kapatıldı.
   - Kullanılmayan eski `renderDeviceSummary` ve `zamanToISO` ölü fonksiyonları temizlendi.
 
+### Değiştirildi
+- **Varsayılan Saklama Süresi (365 Gün) ve UI Dönem Seçenekleri (`src/config.rs`, `eduroam_dashboard.html`):** Varsayılan `collector.retentionDays` değeri `180` günden `365` güne çıkarıldı; Web Dashboard üst dönem seçicisine `180` ve `365` gün seçenekleri eklendi.
+
 ---
 
 ## [v5.1] - 2026-06

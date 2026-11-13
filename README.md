@@ -76,9 +76,18 @@ cargo build --release
 # 4. Windows başlangıcında otomatik çalışacak görevi kaydet (Yönetici olarak)
 .\target\release\eduroam-nps.exe register-tasks
 
+# İsteğe bağlı: Windows Task Scheduler varsayılan 72 saatlik limitini sınırsız (PT0S) yapma
+$t = Get-ScheduledTask -TaskName "EduroamDashboardServer"
+$t.Settings.ExecutionTimeLimit = "PT0S"
+Set-ScheduledTask -InputObject $t
+
 # Yalnızca tek seferlik log toplama çalıştırıp çıkmak için:
 .\target\release\eduroam-nps.exe collect
 ```
+
+### 3. Yapılandırma ve Saklama Süresi
+* **Varsayılan Saklama Süresi:** `AuthLog` kayıtları varsayılan olarak **365 gün** saklanır (`collector.retentionDays`); Web Dashboard dönem seçicisi `7 / 14 / 30 / 90 / 180 / 365` gün aralıklarını destekler.
+* **Özelleştirme:** Tüm yol, port, CORS ve saklama ayarlarını kod değiştirmeden ezmek için [`eduroam_config.example.json`](./eduroam_config.example.json) şablonunu `C:\EduroamLogs\eduroam_config.json` (veya `.exe` yanına) kopyalayıp düzenleyebilirsiniz.
 
 ## Test ve Doğrulama
 
