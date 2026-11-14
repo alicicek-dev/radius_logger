@@ -420,7 +420,7 @@ fn escape_xml(s: &str) -> String {
 fn build_scheduled_task_xml(exe_path: &str) -> String {
     let escaped_exe = escape_xml(exe_path);
     format!(
-        r#"<?xml version="1.0" encoding="UTF-8"?>
+        r#"<?xml version="1.0" encoding="UTF-16"?>
 <Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
   <Triggers>
     <BootTrigger>
@@ -455,13 +455,24 @@ fn build_scheduled_task_xml(exe_path: &str) -> String {
     )
 }
 
+/// Encodes Task Scheduler XML as UTF-16 LE with BOM, which `schtasks.exe /Create /XML` requires.
+fn encode_utf16_le_with_bom(text: &str) -> Vec<u8> {
+    let mut bytes = Vec::with_capacity(2 + text.len() * 2);
+    bytes.extend_from_slice(&[0xFF, 0xFE]);
+    for unit in text.encode_utf16() {
+        bytes.extend_from_slice(&unit.to_le_bytes());
+    }
+    bytes
+}
+
 fn run_register_tasks() {
     let exe_path = std::env::current_exe().expect("Calistirilabilir dosya yolu alinamadi");
     let exe_str = exe_path.to_string_lossy();
     let xml = build_scheduled_task_xml(&exe_str);
+    let xml_bytes = encode_utf16_le_with_bom(&xml);
     let xml_path = std::env::temp_dir().join(format!("radius_task_{}.xml", std::process::id()));
 
-    if let Err(e) = fs::write(&xml_path, xml.as_bytes()) {
+    if let Err(e) = fs::write(&xml_path, &xml_bytes) {
         eprintln!("Gecici gorev XML dosyasi yazilamadi: {}", e);
         std::process::exit(1);
     }
@@ -505,14 +516,21 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_scheduled_task_xml_uses_pt0s_and_escapes_path() {
+    fn test_scheduled_task_xml_uses_pt0s_utf16_and_escapes_path() {
         let xml = build_scheduled_task_xml(r#"C:\Radius & Logs\radius-nps.exe"#);
+        assert!(xml.starts_with(r#"<?xml version="1.0" encoding="UTF-16"?>"#));
         assert!(xml.contains("<ExecutionTimeLimit>PT0S</ExecutionTimeLimit>"));
         assert!(xml.contains("<BootTrigger>"));
         assert!(xml.contains("<UserId>S-1-5-18</UserId>"));
         assert!(xml.contains("<RunLevel>HighestAvailable</RunLevel>"));
         assert!(xml.contains("<Arguments>serve</Arguments>"));
         assert!(xml.contains(r#"<Command>C:\Radius &amp; Logs\radius-nps.exe</Command>"#));
+
+        let encoded = encode_utf16_le_with_bom("<?xml");
+        assert_eq!(
+            encoded,
+            vec![0xFF, 0xFE, b'<', 0, b'?', 0, b'x', 0, b'm', 0, b'l', 0]
+        );
     }
 
     #[test]
