@@ -16,6 +16,7 @@ try { document.querySelector('meta[name="color-scheme"]').content = localStorage
 <body>
 
 <div class="app-shell">
+  <a href="#main-content" class="skip-link visually-hidden">Ana içeriğe geç</a>
   <!-- Top Navigation Bar (Layer 1: Brand + System Metrics + Action Controls) -->
   <header class="topbar">
     <div class="topbar-inner">
@@ -23,7 +24,7 @@ try { document.querySelector('meta[name="color-scheme"]').content = localStorage
       <div class="brand">
         <div class="brand-avatar" aria-hidden="true">RN</div>
         <div>
-          <div class="brand-title">RADIUS NPS</div>
+          <h1 class="brand-title">RADIUS NPS</h1>
           <div class="brand-sub">Windows Network Policy Server</div>
         </div>
       </div>
@@ -50,55 +51,54 @@ try { document.querySelector('meta[name="color-scheme"]').content = localStorage
 
       <!-- Right: Action Controls -->
       <div class="topbar-actions">
-        <select id="daysSelect" class="period-select" onchange="changeDays(this.value)" aria-label="İstatistik dönemi">
-          <option value="7">Son 7 gün ▾</option>
-          <option value="14">Son 14 gün ▾</option>
-          <option value="30">Son 30 gün ▾</option>
-          <option value="90" selected>Son 90 gün (3 Ay) ▾</option>
-          <option value="180">Son 180 gün (6 Ay) ▾</option>
-          <option value="365">Son 365 gün (1 Yıl) ▾</option>
+        <select id="daysSelect" class="period-select" aria-label="İstatistik dönemi">
+          <option value="7">Son 7 gün</option>
+          <option value="14">Son 14 gün</option>
+          <option value="30">Son 30 gün</option>
+          <option value="90" selected>Son 90 gün (3 Ay)</option>
+          <option value="180">Son 180 gün (6 Ay)</option>
+          <option value="365">Son 365 gün (1 Yıl)</option>
         </select>
-        <button type="button" id="themeToggle" class="btn btn--ghost btn--sm" onclick="toggleTheme()" title="Renk şemasını değiştir">Tema</button>
-        <button type="button" class="btn btn--primary btn--sm" onclick="loadData()">Yenile</button>
+        <button type="button" id="themeToggle" class="btn btn--ghost btn--sm" title="Renk şemasını değiştir">Tema</button>
+        <button type="button" id="refreshBtn" class="btn btn--primary btn--sm">Yenile</button>
       </div>
     </div>
   </header>
 
   <!-- Horizontal Underline Tabs (Layer 2: Sticky Tabs Bar) -->
-  <nav class="tabs-bar" aria-label="Bölüm sekmeleri">
+  <div class="tabs-bar">
     <div class="tabs-bar-inner">
-      <div class="tabs-group">
-        <button type="button" class="tab-underline-btn active" data-tab="overview" onclick="switchTab('overview')">Genel Bakış</button>
-        <button type="button" class="tab-underline-btn" data-tab="logs" onclick="switchTab('logs')">Log Kayıtları</button>
-        <button type="button" class="tab-underline-btn" data-tab="analysis" onclick="switchTab('analysis')">Analiz &amp; Bulgular</button>
-        <button type="button" class="tab-underline-btn" data-tab="reference" onclick="switchTab('reference')">NPS Referans</button>
+      <div class="tabs-group" role="tablist" aria-label="Dashboard bölümleri">
+        <button type="button" id="tab-btn-overview" class="tab-underline-btn active" role="tab" aria-selected="true" tabindex="0" data-tab="overview">Genel Bakış</button>
+        <button type="button" id="tab-btn-logs" class="tab-underline-btn" role="tab" aria-selected="false" tabindex="-1" data-tab="logs">Log Kayıtları</button>
+        <button type="button" id="tab-btn-analysis" class="tab-underline-btn" role="tab" aria-selected="false" tabindex="-1" data-tab="analysis">Analiz &amp; Bulgular</button>
+        <button type="button" id="tab-btn-reference" class="tab-underline-btn" role="tab" aria-selected="false" tabindex="-1" data-tab="reference">NPS Referans</button>
       </div>
       <div class="tabs-meta text-caption mono" id="lastUpdate"></div>
     </div>
-  </nav>
+  </div>
 
-  <main class="workspace">
-      <div id="staleBanner" role="alert" style="display:none; margin-bottom:var(--space-16); padding:var(--space-12) var(--space-16); border:1px solid var(--color-warning); border-inline-start-width:4px; border-radius:var(--radius-md, 8px); background:var(--color-surface-raised); color:var(--color-text-primary);"></div>      <!-- Loading Progress Bar (DESIGN.md: 4px height, rounded-full, terracotta fill, small percentage label above) -->
-      <div id="loadingMsg">
-        <div class="heading-subhead">Veriler Hazırlanıyor</div>
+  <main id="main-content" class="workspace" tabindex="-1">
+      <div id="staleBanner" role="alert" style="display:none; margin-bottom:var(--space-16); padding:var(--space-12) var(--space-16); border:1px solid var(--color-warning); border-inline-start-width:4px; border-radius:var(--radius-md, 8px); background:var(--color-surface-raised); color:var(--color-text-primary);"></div>
+      <!-- Loading Progress Bar -->
+      <div id="loadingMsg" role="status" aria-live="polite">
+        <h2 class="heading-subhead">Veriler Hazırlanıyor</h2>
         <div class="progress-wrap">
           <div class="progress-header">
-            <span id="progressStep">Sunucuya bağlanılıyor…</span>
+            <label for="progressBar" id="progressStep">Sunucuya bağlanılıyor…</label>
             <span class="mono" id="progressPct">%0</span>
           </div>
-          <div class="progress-track">
-            <div class="progress-fill" id="progressBar"></div>
-          </div>
+          <progress id="progressBar" class="progress-native" max="100" value="0"></progress>
         </div>
       </div>
 
       <!-- Error State -->
-      <div id="errorMsg" class="card card--stripe-error" style="display:none; max-width: 640px; margin: var(--space-32) auto;"></div>
+      <div id="errorMsg" class="card card--stripe-error" role="alert" style="display:none; max-width: 640px; margin: var(--space-32) auto;"></div>
 
       <div id="dashboard" style="display:none;">
 
         <!-- TAB 1: OVERVIEW -->
-        <section id="tab-overview" class="tab-content active">
+        <section id="tab-overview" class="tab-content active" role="tabpanel" aria-labelledby="tab-btn-overview">
           <div class="section-header">
             <div>
               <div class="text-overline">Ağ Özeti</div>
@@ -108,28 +108,34 @@ try { document.querySelector('meta[name="color-scheme"]').content = localStorage
           </div>
 
           <div class="card-grid card-grid--stats">
-            <div class="card card--stripe-primary card--clickable" onclick="drillDown({result:''})" title="Tüm kayıtları görüntüle">
-              <div class="text-overline">Toplam Kayıt</div>
+            <div class="card card--stripe-primary card--clickable">
+              <h3 class="text-overline card__title">
+                <button type="button" class="card__trigger" data-drill-result="" aria-describedby="sToplamHint">Toplam Kayıt</button>
+              </h3>
               <div class="stat-value" id="sToplam">—</div>
-              <div class="text-caption">İşlenen kimlik doğrulama</div>
+              <div class="text-caption" id="sToplamHint">İşlenen kimlik doğrulama <span class="visually-hidden">(tüm kayıtları görüntüle)</span></div>
             </div>
-            <div class="card card--stripe-success card--clickable" onclick="drillDown({result:'SUCCESS'})" title="Başarılı girişleri filtrele">
-              <div class="text-overline">Başarılı (Accept)</div>
+            <div class="card card--stripe-success card--clickable">
+              <h3 class="text-overline card__title">
+                <button type="button" class="card__trigger" data-drill-result="SUCCESS" aria-describedby="sSuccessP">Başarılı (Accept)</button>
+              </h3>
               <div class="stat-value" id="sSuccess">—</div>
               <div class="text-caption" id="sSuccessP">—</div>
             </div>
-            <div class="card card--stripe-error card--clickable" onclick="drillDown({result:'FAILURE'})" title="Başarısız girişleri filtrele">
-              <div class="text-overline">Başarısız (Reject)</div>
+            <div class="card card--stripe-error card--clickable">
+              <h3 class="text-overline card__title">
+                <button type="button" class="card__trigger" data-drill-result="FAILURE" aria-describedby="sFailureP">Başarısız (Reject)</button>
+              </h3>
               <div class="stat-value" id="sFailure">—</div>
               <div class="text-caption" id="sFailureP">—</div>
             </div>
             <div class="card card--stripe-amber">
-              <div class="text-overline">Tekil Kullanıcı</div>
+              <h3 class="text-overline card__title">Tekil Kullanıcı</h3>
               <div class="stat-value" id="sUniqueUsers">—</div>
               <div class="text-caption">Dönemde başarılı oturum açan</div>
             </div>
             <div class="card card--stripe-stone">
-              <div class="text-overline">Aktif Cihaz (MAC)</div>
+              <h3 class="text-overline card__title">Aktif Cihaz (MAC)</h3>
               <div class="stat-value" id="sUniqueDevices">—</div>
               <div class="text-caption" id="sDevicesSub">Kayıtlı istemci</div>
             </div>
@@ -140,13 +146,13 @@ try { document.querySelector('meta[name="color-scheme"]').content = localStorage
               <div class="card__header">
                 <h3 class="heading-subhead">Günlük Doğrulama Eğilimi</h3>
                 <div style="display:flex; gap:var(--space-16); align-items:center;" class="text-caption">
-                  <span style="display:inline-flex; align-items:center; gap:var(--space-4);"><i style="width:8px;height:8px;border-radius:9999px;background:var(--color-primary);display:inline-block;"></i>Başarılı</span>
-                  <span style="display:inline-flex; align-items:center; gap:var(--space-4);"><i style="width:8px;height:8px;border-radius:9999px;background:var(--color-accent);display:inline-block;"></i>Başarısız</span>
-                  <span id="challengeLegend" style="display:none; align-items:center; gap:var(--space-4);"><i style="width:8px;height:8px;border-radius:9999px;background:var(--color-neutral);display:inline-block;"></i>Challenge</span>
+                  <span style="display:inline-flex; align-items:center; gap:var(--space-4);"><i aria-hidden="true" style="width:8px;height:8px;border-radius:9999px;background:var(--color-primary);display:inline-block;"></i>Başarılı</span>
+                  <span style="display:inline-flex; align-items:center; gap:var(--space-4);"><i aria-hidden="true" style="width:8px;height:8px;border-radius:9999px;background:var(--color-accent);display:inline-block;"></i>Başarısız</span>
+                  <span id="challengeLegend" style="display:none; align-items:center; gap:var(--space-4);"><i aria-hidden="true" style="width:8px;height:8px;border-radius:9999px;background:var(--color-neutral);display:inline-block;"></i>Challenge</span>
                 </div>
               </div>
               <div class="chart-canvas-wrap">
-                <canvas id="trendChart"></canvas>
+                <canvas id="trendChart" role="img" aria-label="Günlük kimlik doğrulama eğilimi grafiği"></canvas>
               </div>
               <div class="chart-summary-strip">
                 <div class="chart-summary-item">
@@ -179,7 +185,7 @@ try { document.querySelector('meta[name="color-scheme"]').content = localStorage
                 <span class="text-caption">24 saatlik oturum dağılımı</span>
               </div>
               <div class="chart-canvas-wrap">
-                <canvas id="hourlyChart"></canvas>
+                <canvas id="hourlyChart" role="img" aria-label="24 saatlik oturum yoğunluğu dağılımı grafiği"></canvas>
               </div>
               <div class="chart-summary-strip">
                 <div class="chart-summary-item">
@@ -230,7 +236,7 @@ try { document.querySelector('meta[name="color-scheme"]').content = localStorage
         </section>
 
         <!-- TAB 2: LOGS -->
-        <section id="tab-logs" class="tab-content">
+        <section id="tab-logs" class="tab-content" role="tabpanel" aria-labelledby="tab-btn-logs" hidden>
           <div class="section-header">
             <div>
               <div class="text-overline">Kayıt İnceleme</div>
@@ -241,8 +247,9 @@ try { document.querySelector('meta[name="color-scheme"]').content = localStorage
               <span id="totalLoaded" class="text-caption"></span>
             </div>
           </div>
+          <div id="tableStatus" class="visually-hidden" role="status" aria-live="polite"></div>
 
-          <div class="filter-panel">
+          <search class="filter-panel" aria-label="Log kayıtları filtresi">
             <div class="filter-grid">
               <div class="filter-group">
                 <label for="fDateFrom">Başlangıç Tarihi</label>
@@ -254,23 +261,23 @@ try { document.querySelector('meta[name="color-scheme"]').content = localStorage
               </div>
               <div class="filter-group">
                 <label for="fUser">Kullanıcı Adı</label>
-                <input class="input-ember" id="fUser" type="text" placeholder="kullanici…">
+                <input class="input-ember" id="fUser" type="text" placeholder="kullanici…" autocorrect="off" autocapitalize="none" spellcheck="false" autocomplete="off">
               </div>
               <div class="filter-group">
                 <label for="fRealm">Etki Alanı (Realm)</label>
-                <input class="input-ember" id="fRealm" type="text" placeholder="kurum.edu.tr…">
+                <input class="input-ember" id="fRealm" type="text" placeholder="kurum.edu.tr…" autocorrect="off" autocapitalize="none" spellcheck="false" autocomplete="off">
               </div>
               <div class="filter-group">
                 <label for="fIP">Erişim Noktası IP</label>
-                <input class="input-ember" id="fIP" type="text" placeholder="10.1…">
+                <input class="input-ember" id="fIP" type="text" placeholder="10.1…" autocorrect="off" autocapitalize="none" spellcheck="false" autocomplete="off">
               </div>
               <div class="filter-group">
                 <label for="fMAC">İstemci MAC</label>
-                <input class="input-ember" id="fMAC" type="text" placeholder="AA-BB…">
+                <input class="input-ember" id="fMAC" type="text" placeholder="AA-BB…" autocorrect="off" autocapitalize="none" spellcheck="false" autocomplete="off">
               </div>
               <div class="filter-group">
                 <label for="fNAS">AP Adı (NAS)</label>
-                <input class="input-ember" id="fNAS" type="text" placeholder="ruckus…">
+                <input class="input-ember" id="fNAS" type="text" placeholder="ruckus…" autocorrect="off" autocapitalize="none" spellcheck="false" autocomplete="off">
               </div>
               <div class="filter-group">
                 <label for="fResult">Sonuç</label>
@@ -291,26 +298,27 @@ try { document.querySelector('meta[name="color-scheme"]').content = localStorage
             <div class="filter-footer">
               <span class="text-caption">Sütun başlıklarına tıklayarak sıralama yönünü değiştirebilirsiniz.</span>
               <div style="display:flex; gap:var(--space-8);">
-                <button type="button" id="clearBtn" class="btn btn--ghost btn--sm" onclick="clearFilters()">Filtreleri Temizle</button>
-                <button type="button" class="btn btn--secondary btn--sm" onclick="exportCSV()">Filtreli CSV İndir</button>
+                <button type="button" id="clearBtn" class="btn btn--ghost btn--sm">Filtreleri Temizle</button>
+                <button type="button" id="exportCsvBtn" class="btn btn--secondary btn--sm">Filtreli CSV İndir</button>
               </div>
             </div>
-          </div>
+            <div id="exportError" class="text-caption" role="alert" hidden style="color:var(--color-error); margin-top:var(--space-8);"></div>
+          </search>
 
           <div tabindex="0" role="region" aria-labelledby="log-table-caption" class="table-wrapper table-wrapper--logs">
             <table class="log-data-table">
               <caption id="log-table-caption" class="sr-only">RADIUS kimlik doğrulama log kayıtları</caption>
               <thead>
                 <tr>
-                  <th onclick="sortBy('Zaman')" id="th-Zaman">Zaman ↕</th>
-                  <th onclick="sortBy('Username')" id="th-Username">Kullanıcı ↕</th>
-                  <th onclick="sortBy('Realm')" id="th-Realm">Realm ↕</th>
-                  <th onclick="sortBy('ClientIP')" id="th-ClientIP">AP IP ↕</th>
-                  <th onclick="sortBy('NASIdentifier')" id="th-NASIdentifier">AP Adı ↕</th>
-                  <th onclick="sortBy('CallingStationID')" id="th-CallingStationID">MAC ↕</th>
-                  <th onclick="sortBy('Result')" id="th-Result">Sonuç ↕</th>
-                  <th onclick="sortBy('ReasonCode')" id="th-ReasonCode">RC ↕</th>
-                  <th>Açıklama</th>
+                  <th scope="col" id="th-Zaman" aria-sort="descending"><button type="button" class="th-sort-btn" data-sort="Zaman">Zaman <span class="sort-icon" aria-hidden="true"></span></button></th>
+                  <th scope="col" id="th-Username"><button type="button" class="th-sort-btn" data-sort="Username">Kullanıcı <span class="sort-icon" aria-hidden="true"></span></button></th>
+                  <th scope="col" id="th-Realm"><button type="button" class="th-sort-btn" data-sort="Realm">Realm <span class="sort-icon" aria-hidden="true"></span></button></th>
+                  <th scope="col" id="th-ClientIP"><button type="button" class="th-sort-btn" data-sort="ClientIP">AP IP <span class="sort-icon" aria-hidden="true"></span></button></th>
+                  <th scope="col" id="th-NASIdentifier"><button type="button" class="th-sort-btn" data-sort="NASIdentifier">AP Adı <span class="sort-icon" aria-hidden="true"></span></button></th>
+                  <th scope="col" id="th-CallingStationID"><button type="button" class="th-sort-btn" data-sort="CallingStationID">MAC <span class="sort-icon" aria-hidden="true"></span></button></th>
+                  <th scope="col" id="th-Result"><button type="button" class="th-sort-btn" data-sort="Result">Sonuç <span class="sort-icon" aria-hidden="true"></span></button></th>
+                  <th scope="col" id="th-ReasonCode"><button type="button" class="th-sort-btn" data-sort="ReasonCode">RC <span class="sort-icon" aria-hidden="true"></span></button></th>
+                  <th scope="col">Açıklama</th>
                 </tr>
               </thead>
               <tbody id="logTable"></tbody>
@@ -320,7 +328,7 @@ try { document.querySelector('meta[name="color-scheme"]').content = localStorage
         </section>
 
         <!-- TAB 3: ANALYSIS -->
-        <section id="tab-analysis" class="tab-content">
+        <section id="tab-analysis" class="tab-content" role="tabpanel" aria-labelledby="tab-btn-analysis" hidden>
           <div class="section-header">
             <div>
               <div class="text-overline">Tanılama</div>
@@ -332,7 +340,7 @@ try { document.querySelector('meta[name="color-scheme"]').content = localStorage
           <div class="card-grid card-grid--analysis">
             <div class="card card--selected" style="display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;">
               <div class="text-overline" style="margin-bottom:var(--space-12);">Genel Başarı Oranı</div>
-              <canvas id="ringCanvas" width="164" height="164"></canvas>
+              <canvas id="ringCanvas" width="164" height="164" role="img" aria-label="Genel kimlik doğrulama başarı oranı halkası"></canvas>
               <div id="ringLabel" class="heading-section" style="margin-top:var(--space-12); color:var(--color-primary);"></div>
               <div id="ringSubLabel" class="text-caption"></div>
               <div id="ringAdjLabel" class="text-caption" style="margin-top:var(--space-8);"></div>
@@ -342,12 +350,12 @@ try { document.querySelector('meta[name="color-scheme"]').content = localStorage
               <div class="card__header">
                 <h3 class="heading-subhead">Günlük Başarılı ve Başarısız Karşılaştırması</h3>
                 <div style="display:flex; gap:var(--space-16); align-items:center;" class="text-caption">
-                  <span style="display:inline-flex; align-items:center; gap:var(--space-4);"><i style="width:8px;height:8px;border-radius:9999px;background:var(--color-primary);display:inline-block;"></i>Başarılı</span>
-                  <span style="display:inline-flex; align-items:center; gap:var(--space-4);"><i style="width:8px;height:8px;border-radius:9999px;background:var(--color-accent);display:inline-block;"></i>Başarısız</span>
+                  <span style="display:inline-flex; align-items:center; gap:var(--space-4);"><i aria-hidden="true" style="width:8px;height:8px;border-radius:9999px;background:var(--color-primary);display:inline-block;"></i>Başarılı</span>
+                  <span style="display:inline-flex; align-items:center; gap:var(--space-4);"><i aria-hidden="true" style="width:8px;height:8px;border-radius:9999px;background:var(--color-accent);display:inline-block;"></i>Başarısız</span>
                 </div>
               </div>
               <div class="chart-canvas-wrap">
-                <canvas id="compareChart"></canvas>
+                <canvas id="compareChart" role="img" aria-label="Günlük başarılı ve başarısız giriş karşılaştırma grafiği"></canvas>
               </div>
               <div class="chart-summary-strip">
                 <div class="chart-summary-item">
@@ -393,7 +401,7 @@ try { document.querySelector('meta[name="color-scheme"]').content = localStorage
         </section>
 
         <!-- TAB 4: REFERENCE -->
-        <section id="tab-reference" class="tab-content">
+        <section id="tab-reference" class="tab-content" role="tabpanel" aria-labelledby="tab-btn-reference" hidden>
           <div class="section-header">
             <div>
               <div class="text-overline">Bilgi Bankası</div>
@@ -403,48 +411,48 @@ try { document.querySelector('meta[name="color-scheme"]').content = localStorage
           </div>
 
           <div class="card-grid card-grid--3">
-            <div class="card card--stripe-error card--clickable" onclick="drillDown({result:'FAILURE',rc:'16'})" title="RC-16 kayıtlarını filtrele">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-8);">
-                <div class="heading-subhead">Yanlış Şifre (RC-16)</div>
+            <article class="card card--stripe-error card--clickable">
+              <div class="card-ref-head">
+                <h3 class="heading-subhead"><button type="button" class="card__trigger" data-drill-result="FAILURE" data-drill-rc="16">Yanlış Şifre (RC-16)</button></h3>
                 <span class="chip" id="refCnt-16">0 kayıt</span>
               </div>
               <p class="text-secondary">Kullanıcı şifresini hatalı giriyor veya cihazda eski şifre kayıtlı. Şifre sıfırlama veya profil unutma önerin.</p>
-            </div>
-            <div class="card card--stripe-error card--clickable" onclick="drillDown({result:'FAILURE',rc:'36'})" title="RC-36 kayıtlarını filtrele">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-8);">
-                <div class="heading-subhead">Hesap Kilitli (RC-36)</div>
+            </article>
+            <article class="card card--stripe-error card--clickable">
+              <div class="card-ref-head">
+                <h3 class="heading-subhead"><button type="button" class="card__trigger" data-drill-result="FAILURE" data-drill-rc="36">Hesap Kilitli (RC-36)</button></h3>
                 <span class="chip" id="refCnt-36">0 kayıt</span>
               </div>
               <p class="text-secondary">Ardışık başarısız denemeler nedeniyle Active Directory hesabı kilitlendi. AD üzerinden kilidi açın.</p>
-            </div>
-            <div class="card card--stripe-error card--clickable" onclick="drillDown({result:'FAILURE',rc:'8'})" title="RC-8 kayıtlarını filtrele">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-8);">
-                <div class="heading-subhead">Kullanıcı Yok (RC-8)</div>
+            </article>
+            <article class="card card--stripe-error card--clickable">
+              <div class="card-ref-head">
+                <h3 class="heading-subhead"><button type="button" class="card__trigger" data-drill-result="FAILURE" data-drill-rc="8">Kullanıcı Yok (RC-8)</button></h3>
                 <span class="chip" id="refCnt-8">0 kayıt</span>
               </div>
               <p class="text-secondary">Kullanıcı adı yanlış yazılmış veya dizinde mevcut değil. Yazımı ve AD hesabını kontrol edin.</p>
-            </div>
-            <div class="card card--stripe-amber card--clickable" onclick="drillDown({result:'FAILURE',rc:'34'})" title="RC-34 kayıtlarını filtrele">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-8);">
-                <div class="heading-subhead">Hesap Devre Dışı (RC-34)</div>
+            </article>
+            <article class="card card--stripe-amber card--clickable">
+              <div class="card-ref-head">
+                <h3 class="heading-subhead"><button type="button" class="card__trigger" data-drill-result="FAILURE" data-drill-rc="34">Hesap Devre Dışı (RC-34)</button></h3>
                 <span class="chip" id="refCnt-34">0 kayıt</span>
               </div>
               <p class="text-secondary">Mezuniyet veya ayrılış nedeniyle hesap pasif durumda. Gerekiyorsa AD üzerinden etkinleştirin.</p>
-            </div>
-            <div class="card card--stripe-amber card--clickable" onclick="drillDown({result:'FAILURE',rc:'112'})" title="RC-112 kayıtlarını filtrele">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-8);">
-                <div class="heading-subhead">Realm Yönlendirme (RC-112)</div>
+            </article>
+            <article class="card card--stripe-amber card--clickable">
+              <div class="card-ref-head">
+                <h3 class="heading-subhead"><button type="button" class="card__trigger" data-drill-result="FAILURE" data-drill-rc="112">Realm Yönlendirme (RC-112)</button></h3>
                 <span class="chip" id="refCnt-112">0 kayıt</span>
               </div>
               <p class="text-secondary">Misafir kurum kullanıcısı için NPS Bağlantı İsteği İlkelerinde proxy yönlendirme kuralı eşleşmedi.</p>
-            </div>
-            <div class="card card--stripe-primary card--clickable" onclick="drillDown({result:'FAILURE',rc:'22'})" title="RC-22 kayıtlarını filtrele">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-8);">
-                <div class="heading-subhead">EAP El Sıkışma (RC-22)</div>
+            </article>
+            <article class="card card--stripe-primary card--clickable">
+              <div class="card-ref-head">
+                <h3 class="heading-subhead"><button type="button" class="card__trigger" data-drill-result="FAILURE" data-drill-rc="22">EAP El Sıkışma (RC-22)</button></h3>
                 <span class="chip" id="refCnt-22">0 kayıt</span>
               </div>
               <p class="text-secondary">İstemci cihaz EAP/TLS el sıkışmasını yarıda kesti; istemci EAP/TLS profili ve kök CA sertifikasını kontrol edin.</p>
-            </div>
+            </article>
           </div>
 
           <div class="card-grid card-grid--2">
@@ -456,9 +464,9 @@ try { document.querySelector('meta[name="color-scheme"]').content = localStorage
                 <table>
                   <thead>
                     <tr>
-                      <th>Event ID</th>
-                      <th>Durum</th>
-                      <th>Açıklama</th>
+                      <th scope="col">Event ID</th>
+                      <th scope="col">Durum</th>
+                      <th scope="col">Açıklama</th>
                     </tr>
                   </thead>
                   <tbody id="eventIdTableBody"></tbody>
@@ -474,10 +482,10 @@ try { document.querySelector('meta[name="color-scheme"]').content = localStorage
                 <table>
                   <thead>
                     <tr>
-                      <th>Kod</th>
-                      <th>Mesaj Türü</th>
-                      <th>Sonuç</th>
-                      <th>Açıklama</th>
+                      <th scope="col">Kod</th>
+                      <th scope="col">Mesaj Türü</th>
+                      <th scope="col">Sonuç</th>
+                      <th scope="col">Açıklama</th>
                     </tr>
                   </thead>
                   <tbody id="packetTypeBody"></tbody>
@@ -494,12 +502,12 @@ try { document.querySelector('meta[name="color-scheme"]').content = localStorage
               <table>
                 <thead>
                   <tr>
-                    <th>Kod</th>
-                    <th>Dönem Kaydı</th>
-                    <th>Sabit Ad</th>
-                    <th>Türkçe Açıklama</th>
-                    <th>Kategori</th>
-                    <th>Önerilen Aksiyon</th>
+                    <th scope="col">Kod</th>
+                    <th scope="col">Dönem Kaydı</th>
+                    <th scope="col">Sabit Ad</th>
+                    <th scope="col">Türkçe Açıklama</th>
+                    <th scope="col">Kategori</th>
+                    <th scope="col">Önerilen Aksiyon</th>
                   </tr>
                 </thead>
                 <tbody id="reasonCodeBody"></tbody>
@@ -642,16 +650,9 @@ function changeDays(val){
   loadData();
 }
 
-function toggleNavSection(id) {
-  const sec = document.getElementById(id);
-  if (!sec) return;
-  const collapsed = sec.classList.toggle('collapsed');
-  const btn = sec.querySelector('.nav-section-toggle');
-  if (btn) btn.setAttribute('aria-expanded', String(!collapsed));
-}
-
 function setProgress(pct, step) {
-  document.getElementById('progressBar').style.width = pct + '%';
+  const bar = document.getElementById('progressBar');
+  if (bar) bar.value = pct;
   document.getElementById('progressPct').textContent = '%' + Math.round(pct);
   if (step) document.getElementById('progressStep').textContent = step;
 }
@@ -710,10 +711,12 @@ async function loadData() {
     document.getElementById('loadingMsg').style.display='none';
     const em = document.getElementById('errorMsg');
     em.style.display='block';
-    em.innerHTML='<div class="heading-subhead" style="margin-bottom:var(--space-8); color:var(--color-error);">Sunucuya Bağlanılamadı</div>'+
-      '<p class="text-secondary" style="margin-bottom:var(--space-12);">Arka uç servisini başlatıp sayfayı yenileyin:</p>'+
-      '<code>radius-nps.exe serve</code>'+
-      '<p class="text-caption" style="margin-top:var(--space-12);">'+esc(e.message)+'</p>';
+    em.replaceChildren(
+      dom('h2', { className: 'heading-subhead', style: { marginBottom: 'var(--space-8)', color: 'var(--color-error)' }, text: 'Sunucuya Bağlanılamadı' }),
+      dom('p', { className: 'text-secondary', style: { marginBottom: 'var(--space-12)' }, text: 'Arka uç servisini başlatıp sayfayı yenileyin:' }),
+      dom('code', { text: 'radius-nps.exe serve' }),
+      dom('p', { className: 'text-caption', style: { marginTop: 'var(--space-12)' }, text: e.message || String(e) })
+    );
   }
 }
 
@@ -820,15 +823,26 @@ async function renderAll(d) {
   renderReference(d.byReason||[]);
 }
 
+function setupCanvas(cnv, cssW, cssH) {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  cnv.width = Math.round(cssW * dpr);
+  cnv.height = Math.round(cssH * dpr);
+  cnv.style.width = cssW + 'px';
+  cnv.style.height = cssH + 'px';
+  const ctx = cnv.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return ctx;
+}
+
 function renderTrend(rows) {
   const cnv=document.getElementById('trendChart');
   if(!cnv)return;
-  const ctx=cnv.getContext('2d');
   const wrap = cnv.parentElement;
   const pw = wrap ? wrap.clientWidth : cnv.offsetWidth;
   const ph = wrap ? Math.max(210, wrap.clientHeight - 8) : 210;
-  cnv.width = pw > 0 ? pw : 600; cnv.height = ph;
-  const W=cnv.width,H=cnv.height,pL=38,pB=24,pT=10;
+  const W = pw > 0 ? pw : 600, H = ph;
+  const ctx = setupCanvas(cnv, W, H);
+  const pL=38,pB=24,pT=10;
   const days=[...new Set(rows.map(r=>r.Gun))].sort();
   const suc={},fail={},chal={};
   let totalSuc=0, totalAll=0, peakDay='—', peakVal=0;
@@ -850,6 +864,7 @@ function renderTrend(rows) {
   if(avgEl) avgEl.textContent = fmt(avgDay) + ' / gün';
   if(peakEl) peakEl.textContent = peakVal>0 ? (peakDay + ' (' + fmt(peakVal) + ')') : '—';
   if(rateEl) rateEl.textContent = pct(totalSuc, totalAll);
+  cnv.setAttribute('aria-label', `Günlük doğrulama eğilimi: günlük ortalama ${fmt(avgDay)} kayıt, en yoğun gün ${peakDay} (${fmt(peakVal)}), dönem başarı oranı ${pct(totalSuc, totalAll)}.`);
 
   const maxV=Math.max(...days.map(d=>(suc[d]||0)+(fail[d]||0)+(chal[d]||0)),1);
   const bw=(W-pL)/Math.max(days.length,1);
@@ -882,12 +897,12 @@ function renderTrend(rows) {
 function renderHourly(rows) {
   const cnv=document.getElementById('hourlyChart');
   if(!cnv)return;
-  const ctx=cnv.getContext('2d');
   const wrap = cnv.parentElement;
   const pw = wrap ? wrap.clientWidth : cnv.offsetWidth;
   const ph = wrap ? Math.max(200, wrap.clientHeight - 8) : 200;
-  cnv.width = pw > 0 ? pw : 600; cnv.height = ph;
-  const W=cnv.width,H=cnv.height,pL=34,pB=22,pT=8;
+  const W = pw > 0 ? pw : 600, H = ph;
+  const ctx = setupCanvas(cnv, W, H);
+  const pL=34,pB=22,pT=8;
   const byH={};
   let totalH=0, dayH=0, nightH=0, peakH=0, peakHVal=0;
   rows.forEach(r=>{ byH[+r.Saat]=(byH[+r.Saat]||0)+(+r.Cnt); });
@@ -904,6 +919,7 @@ function renderHourly(rows) {
   if(hpEl) hpEl.textContent = peakHVal>0 ? `${String(peakH).padStart(2,'0')}:00 (${fmt(peakHVal)})` : '—';
   if(hdEl) hdEl.textContent = pct(dayH, totalH);
   if(hnEl) hnEl.textContent = pct(nightH, totalH);
+  cnv.setAttribute('aria-label', `Saatlik yoğunluk dağılımı: en yoğun saat ${peakHVal>0 ? String(peakH).padStart(2,'0')+':00' : 'yok'}, mesai payı ${pct(dayH, totalH)}, gece payı ${pct(nightH, totalH)}.`);
 
   const maxV=Math.max(...Array.from({length:24},(_,h)=>byH[h]||0),1);
   const bw=(W-pL)/24;
@@ -947,9 +963,10 @@ function realFailPct(sm,total){
 function renderRing(sm,total){
   const cnv=document.getElementById('ringCanvas');
   if(!cnv)return;
-  const ctx=cnv.getContext('2d');
-  const cx=cnv.width/2,cy=cnv.height/2,r=64,lw=14;
-  ctx.clearRect(0,0,cnv.width,cnv.height);
+  const size = 160;
+  const ctx = setupCanvas(cnv, size, size);
+  const cx=size/2,cy=size/2,r=64,lw=14;
+  ctx.clearRect(0,0,size,size);
   const rate=total>0?(sm.SUCCESS||0)/total:0;
   const failRate=total>0?(sm.FAILURE||0)/total:0;
   ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.strokeStyle=cv('--color-surface-raised')||'#E7E5E4';ctx.lineWidth=lw;ctx.stroke();
@@ -965,17 +982,18 @@ function renderRing(sm,total){
   document.getElementById('ringSubLabel').textContent='başarılı doğrulama';
   const adj=document.getElementById('ringAdjLabel');
   if(adj) adj.textContent=rc112Count()>0?`RC-112 hariç gerçek oran: %${(100-realFailPct(sm,total)).toFixed(1)}`:'';
+  cnv.setAttribute('aria-label', `Genel başarı oranı: %${(rate*100).toFixed(1)} (${fmt(sm.SUCCESS||0)} başarılı, ${fmt(sm.FAILURE||0)} başarısız).`);
 }
 
 function renderCompare(rows){
   const cnv=document.getElementById('compareChart');
   if(!cnv)return;
-  const ctx=cnv.getContext('2d');
   const wrap = cnv.parentElement;
   const pw = wrap ? wrap.clientWidth : cnv.offsetWidth;
   const ph = wrap ? Math.max(190, wrap.clientHeight - 8) : 190;
-  cnv.width = pw > 0 ? pw : 600; cnv.height = ph;
-  const W=cnv.width,H=cnv.height,pL=38,pB=22,pT=10;
+  const W = pw > 0 ? pw : 600, H = ph;
+  const ctx = setupCanvas(cnv, W, H);
+  const pL=38,pB=22,pT=10;
   const days=[...new Set(rows.map(r=>r.Gun))].sort();
   const suc={},fail={};
   let totS=0, totF=0;
@@ -989,6 +1007,7 @@ function renderCompare(rows){
   if(csEl) csEl.textContent=fmt(totS);
   if(cfEl) cfEl.textContent=fmt(totF);
   if(caEl) caEl.textContent=fmt(days.length>0?Math.round(totF/days.length):0)+' / gün';
+  cnv.setAttribute('aria-label', `Günlük başarılı ve başarısız karşılaştırması: toplam ${fmt(totS)} başarılı, ${fmt(totF)} başarısız.`);
 
   const maxV=Math.max(...days.map(d=>Math.max(suc[d]||0,fail[d]||0)),1);
   const bw=(W-pL)/Math.max(days.length,1);
@@ -1024,24 +1043,56 @@ function renderCompare(rows){
 
 const _barClickHandlers = {};
 
+function dom(tag, props, children){
+  const node = document.createElement(tag);
+  if(props){
+    for(const [k,v] of Object.entries(props)){
+      if(v === undefined || v === null || v === false) continue;
+      if(k === 'className') node.className = v;
+      else if(k === 'text') node.textContent = v;
+      else if(k === 'style' && typeof v === 'object') Object.assign(node.style, v);
+      else if(k === 'dataset' && typeof v === 'object') Object.assign(node.dataset, v);
+      else node.setAttribute(k, v === true ? '' : String(v));
+    }
+  }
+  if(children !== undefined && children !== null){
+    const arr = Array.isArray(children) ? children : [children];
+    for(const c of arr){
+      if(c === undefined || c === null || c === false) continue;
+      node.appendChild(typeof c === 'string' || typeof c === 'number' ? document.createTextNode(String(c)) : c);
+    }
+  }
+  return node;
+}
+
 function renderBarChart(id,rows,labelFn,valFn,color,metaFn,onClickFn){
   const el=document.getElementById(id);
   if(!el)return;
-  if(!rows||!rows.length){el.innerHTML='<div class="text-caption">Veri bulunamadı</div>';return;}
+  if(!rows||!rows.length){el.replaceChildren(dom('div',{className:'text-caption',text:'Veri bulunamadı'}));return;}
   const visible=rows.slice(0,8);
   const maxV=Math.max(...visible.map(valFn),1);
   const sumV=rows.reduce((a,r)=>a+valFn(r),0);
   _barClickHandlers[id] = { rows: visible, fn: onClickFn };
-  const itemsHtml=visible.map((r,idx)=>{
+  const nodes=visible.map((r,idx)=>{
     const p=(valFn(r)/maxV*100).toFixed(0), lbl=labelFn(r);
-    const safeLbl=esc(lbl);
-    const valStr = metaFn ? esc(metaFn(r)) : fmt(valFn(r));
-    const interactiveCls = onClickFn ? ' bar-row--interactive' : '';
-    const clickAttr = onClickFn ? ` onclick="handleBarClick('${esc(id)}',${idx})" title="${safeLbl} — Kayıtları filtrelemek için tıklayın"` : ` title="${safeLbl}"`;
-    return `<div class="bar-row${interactiveCls}"${clickAttr}><div class="bar-row-meta"><span class="bar-label">${safeLbl}</span><span class="bar-val">${valStr}</span></div><div class="bar-track"><div class="bar-fill" style="width:${p}%;background:${color}"></div></div></div>`;
-  }).join('');
-  const footerHtml=`<div class="card-footer-meta"><span>Gösterilen: ${visible.length} / ${rows.length}${onClickFn?' · Tıkla & Filtrele':''}</span><span class="mono">Toplam: ${fmt(sumV)}</span></div>`;
-  el.innerHTML=itemsHtml+footerHtml;
+    const valStr = metaFn ? String(metaFn(r)) : fmt(valFn(r));
+    const metaRow = dom('div',{className:'bar-row-meta'},[
+      dom('span',{className:'bar-label',text:lbl}),
+      dom('span',{className:'bar-val',text:valStr})
+    ]);
+    const trackRow = dom('div',{className:'bar-track'},[
+      dom('div',{className:'bar-fill',style:{width:p+'%',background:color}})
+    ]);
+    if (onClickFn) {
+      return dom('button',{type:'button',className:'bar-row bar-row--interactive',dataset:{barId:id,barIdx:String(idx)}},[metaRow,trackRow]);
+    }
+    return dom('div',{className:'bar-row'},[metaRow,trackRow]);
+  });
+  nodes.push(dom('div',{className:'card-footer-meta'},[
+    dom('span',{text:`Gösterilen: ${visible.length} / ${rows.length}${onClickFn?' · Tıkla & Filtrele':''}`}),
+    dom('span',{className:'mono',text:`Toplam: ${fmt(sumV)}`})
+  ]));
+  el.replaceChildren(...nodes);
 }
 
 function handleBarClick(id, idx){
@@ -1078,42 +1129,44 @@ function drillDown(filters){
 }
 
 function renderInsights(d,sm,total){
-  const lines=[];
+  const items=[];
   const rc112=rc112Count();
   const failPct=realFailPct(sm,total);
-  if(rc112>0) lines.push(`<b>Not:</b> Başarısızlık oranı, misafir realm yönlendirme isteklerini (RC-112, ${fmt(rc112)} kayıt) hariç tutarak hesaplanır.`);
+  const makeItem=(children)=>dom('div',{style:{padding:'var(--space-12) var(--space-16)',background:'var(--color-bg)',borderRadius:'var(--radius-ctrl)',borderLeft:'3px solid var(--color-primary)',fontSize:'var(--text-small)'}},children);
 
-  if(failPct>20)      lines.push(`<b>Sistem Uyarısı:</b> Seçili dönemde başarısızlık oranı <b style="color:var(--color-error)">%${failPct.toFixed(1)}</b> ile normal eşik değerinin (%10) üzerinde.`);
-  else if(failPct<5)  lines.push(`<b>Sistem Sağlıklı:</b> Başarısızlık oranı <b style="color:var(--color-success)">%${failPct.toFixed(1)}</b> düzeyinde. Toplam ${fmt(sm.SUCCESS||0)} başarılı oturum doğrulandı.`);
-  else                lines.push(`<b>Normal Durum:</b> Başarısızlık oranı <b style="color:var(--color-warning)">%${failPct.toFixed(1)}</b> ile olağan sınırlar içinde.`);
+  if(rc112>0) items.push(makeItem([dom('b',{text:'Not:'}),` Başarısızlık oranı, misafir realm yönlendirme isteklerini (RC-112, ${fmt(rc112)} kayıt) hariç tutarak hesaplanır.`]));
+
+  if(failPct>20)      items.push(makeItem([dom('b',{text:'Sistem Uyarısı:'}),' Seçili dönemde başarısızlık oranı ',dom('b',{style:{color:'var(--color-error)'},text:`%${failPct.toFixed(1)}`}),' ile normal eşik değerinin (%10) üzerinde.']));
+  else if(failPct<5)  items.push(makeItem([dom('b',{text:'Sistem Sağlıklı:'}),' Başarısızlık oranı ',dom('b',{style:{color:'var(--color-success)'},text:`%${failPct.toFixed(1)}`}),` düzeyinde. Toplam ${fmt(sm.SUCCESS||0)} başarılı oturum doğrulandı.`]));
+  else                items.push(makeItem([dom('b',{text:'Normal Durum:'}),' Başarısızlık oranı ',dom('b',{style:{color:'var(--color-warning)'},text:`%${failPct.toFixed(1)}`}),' ile olağan sınırlar içinde.']));
 
   if(d.byReason&&d.byReason.length>0){
     const r=d.byReason[0], info=rcInfo(r.ReasonCode);
     const pctR=total>0?(+r.Cnt/total*100).toFixed(1):0;
-    lines.push(`<b>En Sık Görülen Ret Nedeni:</b> "${esc(info.tr)}" (RC-${esc(String(r.ReasonCode))}) — ${fmt(+r.Cnt)} kayıt (%${pctR}). <span class="text-secondary">Öneri: ${esc(info.action)}</span>`);
+    items.push(makeItem([dom('b',{text:'En Sık Görülen Ret Nedeni:'}),` "${info.tr}" (RC-${r.ReasonCode}) — ${fmt(+r.Cnt)} kayıt (%${pctR}). `,dom('span',{className:'text-secondary',text:`Öneri: ${info.action}`})]));
   }
 
   if(d.topFail&&d.topFail.length>0){
     const t=d.topFail[0];
-    const uStr=esc(t.Username+(t.Realm?'@'+t.Realm:''));
-    if(+t.Cnt>=5) lines.push(`<b>Çoklu Hatalı Giriş:</b> <span class="mono">${uStr}</span> seçili dönemde ${fmt(+t.Cnt)} başarısız deneme yaptı.`);
+    const uStr=t.Username+(t.Realm?'@'+t.Realm:'');
+    if(+t.Cnt>=5) items.push(makeItem([dom('b',{text:'Çoklu Hatalı Giriş:'}),' ',dom('span',{className:'mono',text:uStr}),` seçili dönemde ${fmt(+t.Cnt)} başarısız deneme yaptı.`]));
   }
 
   if(d.byNAS&&d.byNAS.length>0){
     const n=d.byNAS[0];
     const apFail=+n.Total>0?(+n.Fail/+n.Total*100).toFixed(0):0;
-    lines.push(`<b>En Yoğun Erişim Noktası:</b> <span class="mono">${esc(n.NASIdentifier)}</span> (${fmt(+n.Total)} istek, %${apFail} başarısız).`);
+    items.push(makeItem([dom('b',{text:'En Yoğun Erişim Noktası:'}),' ',dom('span',{className:'mono',text:n.NASIdentifier}),` (${fmt(+n.Total)} istek, %${apFail} başarısız).`]));
   }
 
   if(d.byRealm&&d.byRealm.length>0){
     const realmTotal=d.byRealm.reduce((a,r)=>a+(+r.Total||0),0);
     const topR=d.byRealm[0];
-    lines.push(`<b>Etki Alanı (Realm) Dağılımı:</b> ${d.byRealm.length} farklı etki alanından toplam ${fmt(realmTotal)} istek işlendi; en yoğun: <span class="mono">${esc(topR.Realm||'(boş)')}</span> (${fmt(+topR.Total)}).`);
+    items.push(makeItem([dom('b',{text:'Etki Alanı (Realm) Dağılımı:'}),` ${d.byRealm.length} farklı etki alanından toplam ${fmt(realmTotal)} istek işlendi; en yoğun: `,dom('span',{className:'mono',text:topR.Realm||'(boş)'}),` (${fmt(+topR.Total)}).`]));
   }
 
-  document.getElementById('insights').innerHTML='<div style="display:flex;flex-direction:column;gap:var(--space-12);">'+
-    lines.map(l=>`<div style="padding:var(--space-12) var(--space-16);background:var(--color-bg);border-radius:var(--radius-ctrl);border-left:3px solid var(--color-primary);font-size:var(--text-small);">${l}</div>`).join('')+
-    '</div>';
+  document.getElementById('insights').replaceChildren(
+    dom('div',{style:{display:'flex',flexDirection:'column',gap:'var(--space-12)'}},items)
+  );
 }
 
 function renderReference(byReasonRows){
@@ -1127,38 +1180,40 @@ function renderReference(byReasonRows){
     }
   });
 
-  document.getElementById('eventIdTableBody').innerHTML=NPS_EVENT_IDS.map(e=>`
-    <tr>
-      <th><span class="badge">${e.id}</span></th>
-      <td><span class="mono" style="font-size:var(--text-caption);font-weight:var(--weight-semibold);color:var(--color-primary);">${e.label}</span></td>
-      <td>${e.desc}<div class="text-caption" style="margin-top:var(--space-4);">${e.detail}</div></td>
-    </tr>`).join('');
+  document.getElementById('eventIdTableBody').replaceChildren(...NPS_EVENT_IDS.map(e=>
+    dom('tr',null,[
+      dom('th',{scope:'row'},dom('span',{className:'badge',text:e.id})),
+      dom('td',null,dom('span',{className:'mono',style:{fontSize:'var(--text-caption)',fontWeight:'var(--weight-semibold)',color:'var(--color-primary)'},text:e.label})),
+      dom('td',null,[e.desc,dom('div',{className:'text-caption',style:{marginTop:'var(--space-4)'},text:e.detail})])
+    ])
+  ));
 
-  document.getElementById('reasonCodeBody').innerHTML=NPS_REASON_CODES.map(r=>{
+  document.getElementById('reasonCodeBody').replaceChildren(...NPS_REASON_CODES.map(r=>{
     const cls=rcPillClass(r.cat);
     const cnt = r.code === 0 ? null : (rcMap[String(r.code)] || 0);
-    const cntHtml = r.code === 0
-      ? `<span class="mono text-secondary" style="cursor:pointer;" onclick="drillDown({result:'SUCCESS'})">Başarılı</span>`
+    const cntNode = r.code === 0
+      ? dom('button',{type:'button',className:'clickable-cell mono text-secondary',dataset:{drillResult:'SUCCESS'},text:'Başarılı'})
       : (cnt > 0
-          ? `<span class="badge badge-FAILURE" style="cursor:pointer;" onclick="drillDown({result:'FAILURE',rc:'${r.code}'})" title="Kayıtları görmek için tıklayın">${fmt(cnt)}</span>`
-          : `<span class="mono text-caption">0</span>`);
-    return `<tr>
-      <th><span class="reason-pill ${cls}" style="cursor:pointer;" onclick="drillDown({rc:'${r.code}'})">${r.code}</span></th>
-      <td class="mono" style="font-size:var(--text-caption);">${cntHtml}</td>
-      <td class="mono" style="font-size:var(--text-caption);">${r.cn}</td>
-      <td>${r.tr}</td>
-      <td><span class="chip">${r.catL}</span></td>
-      <td class="text-secondary">${r.action}</td>
-    </tr>`;
-  }).join('');
+          ? dom('button',{type:'button',className:'badge badge-FAILURE',dataset:{drillResult:'FAILURE',drillRc:String(r.code)},'aria-label':`${fmt(cnt)} kayıt (RC-${r.code} filtrele)`,text:fmt(cnt)})
+          : dom('span',{className:'mono text-caption',text:'0'}));
+    return dom('tr',null,[
+      dom('th',{scope:'row'},dom('button',{type:'button',className:`reason-pill ${cls}`,dataset:{drillRc:String(r.code)},'aria-label':`RC-${r.code} kayıtlarını filtrele`,text:r.code})),
+      dom('td',{className:'mono',style:{fontSize:'var(--text-caption)'}},cntNode),
+      dom('td',{className:'mono',style:{fontSize:'var(--text-caption)'},text:r.cn}),
+      dom('td',{text:r.tr}),
+      dom('td',null,dom('span',{className:'chip',text:r.catL})),
+      dom('td',{className:'text-secondary',text:r.action})
+    ]);
+  }));
 
-  document.getElementById('packetTypeBody').innerHTML=PACKET_TYPES.map(p=>`
-    <tr>
-      <th><span class="mono">${p.pt}</span></th>
-      <td style="font-weight:var(--weight-semibold);">${p.name}</td>
-      <td>${p.result?`<span class="badge badge-${p.result}">${p.result}</span>`:'<span class="text-caption">—</span>'}</td>
-      <td class="text-secondary">${p.desc}</td>
-    </tr>`).join('');
+  document.getElementById('packetTypeBody').replaceChildren(...PACKET_TYPES.map(p=>
+    dom('tr',null,[
+      dom('th',{scope:'row'},dom('span',{className:'mono',text:p.pt})),
+      dom('td',{style:{fontWeight:'var(--weight-semibold)'},text:p.name}),
+      dom('td',null,p.result?dom('span',{className:`badge badge-${p.result}`,text:p.result}):dom('span',{className:'text-caption',text:'—'})),
+      dom('td',{className:'text-secondary',text:p.desc})
+    ])
+  ));
 }
 
 function populateReasonFilter(){
@@ -1203,7 +1258,9 @@ function getFilterParams(pg=1){
 async function loadTable(pg=1){
   _tablePage = pg;
   const tbody = document.getElementById('logTable');
-  tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:var(--space-24);" class="text-secondary">Yükleniyor…</td></tr>';
+  tbody.replaceChildren(
+    dom('tr',null,dom('td',{colspan:'9',className:'text-secondary',style:{textAlign:'center',padding:'var(--space-24)'},text:'Yükleniyor…'}))
+  );
   try {
     const resp = await fetch('/api/recent?' + getFilterParams(pg));
     const json = await resp.json();
@@ -1221,7 +1278,9 @@ async function loadTable(pg=1){
     }
     renderPagination();
   } catch(e) {
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--color-error);padding:var(--space-24);">Veri alınamadı: '+esc(e.message)+'</td></tr>';
+    tbody.replaceChildren(
+      dom('tr',null,dom('td',{colspan:'9',style:{textAlign:'center',color:'var(--color-error)',padding:'var(--space-24)'},text:'Veri alınamadı: '+(e.message||String(e))}))
+    );
   }
 }
 
@@ -1231,7 +1290,6 @@ function applyFilters(){
 }
 
 const RESULT_ICON = { SUCCESS:'✓', FAILURE:'✗', CHALLENGE:'⟳', REQUEST:'→' };
-function esc(s) { const d=document.createElement('div'); d.textContent=s||''; return d.innerHTML; }
 
 function quickFilter(field, val){
   if(!val || val==='—') return;
@@ -1242,30 +1300,44 @@ function quickFilter(field, val){
 }
 
 function renderTableRows(rows){
+  const tbody = document.getElementById('logTable');
   if(!rows||!rows.length){
-    document.getElementById('logTable').innerHTML='<tr><td colspan="9" style="text-align:center;padding:var(--space-24);" class="text-secondary">Eşleşen kayıt bulunamadı</td></tr>';
+    tbody.replaceChildren(
+      dom('tr',null,dom('td',{colspan:'9',className:'text-secondary',style:{textAlign:'center',padding:'var(--space-24)'},text:'Eşleşen kayıt bulunamadı'}))
+    );
     return;
   }
-  document.getElementById('logTable').innerHTML=rows.map(r=>{
+  const makeEmpty = () => dom('span',{className:'text-caption',text:'—'});
+  const makeFilterBtn = (field, val) => val
+    ? dom('button',{type:'button',className:'clickable-cell',dataset:{f:field,v:String(val)},text:String(val)})
+    : makeEmpty();
+  tbody.replaceChildren(...rows.map(r=>{
     const info     = rcInfo(r.ReasonCode);
     const cls      = rcPillClass(info.cat);
-    const rc       = (r.ReasonCode!==undefined&&r.ReasonCode!==null) ? r.ReasonCode : '—';
+    const rc       = (r.ReasonCode!==undefined&&r.ReasonCode!==null) ? String(r.ReasonCode) : '—';
     const icon     = RESULT_ICON[r.Result]||'';
     const zamanStr = formatZaman(r.Zaman||'');
-    const emptyVal = `<span class="text-caption">—</span>`;
     const descStr  = (info.tr === 'Bilinmeyen kod' && r.Reason) ? r.Reason : info.tr;
-    return `<tr>
-      <th class="mono" style="font-size:var(--text-caption);white-space:nowrap;" title="${esc(r.Zaman||'')}">${esc(zamanStr)}</th>
-      <td style="font-weight:var(--weight-semibold);" title="Filtrelemek için tıklayın: ${esc(r.Username||'')}">${r.Username?`<span class="clickable-cell" data-f="fUser" data-v="${esc(r.Username)}" onclick="quickFilter(this.dataset.f,this.dataset.v)">${esc(r.Username)}</span>`:emptyVal}</td>
-      <td title="Filtrelemek için tıklayın: ${esc(r.Realm||'')}">${r.Realm?`<span class="clickable-cell" data-f="fRealm" data-v="${esc(r.Realm)}" onclick="quickFilter(this.dataset.f,this.dataset.v)">${esc(r.Realm)}</span>`:emptyVal}</td>
-      <td class="mono" style="font-size:var(--text-caption);" title="Filtrelemek için tıklayın: ${esc(r.ClientIP||'')}">${r.ClientIP?`<span class="clickable-cell" data-f="fIP" data-v="${esc(r.ClientIP)}" onclick="quickFilter(this.dataset.f,this.dataset.v)">${esc(r.ClientIP)}</span>`:emptyVal}</td>
-      <td title="Filtrelemek için tıklayın: ${esc(r.NASIdentifier||'')}">${r.NASIdentifier?`<span class="clickable-cell" data-f="fNAS" data-v="${esc(r.NASIdentifier)}" onclick="quickFilter(this.dataset.f,this.dataset.v)">${esc(r.NASIdentifier)}</span>`:emptyVal}</td>
-      <td class="mono" style="font-size:var(--text-caption);" title="Filtrelemek için tıklayın: ${esc(r.CallingStationID||'')}">${r.CallingStationID?`<span class="clickable-cell" data-f="fMAC" data-v="${esc(r.CallingStationID)}" onclick="quickFilter(this.dataset.f,this.dataset.v)">${esc(r.CallingStationID)}</span>`:emptyVal}</td>
-      <td><span class="badge badge-${esc(r.Result||'')}" style="cursor:pointer;" data-f="fResult" data-v="${esc(r.Result||'')}" onclick="quickFilter(this.dataset.f,this.dataset.v)">${icon} ${esc(r.Result||'')}</span></td>
-      <td><span class="reason-pill ${cls}" style="cursor:pointer;" data-f="fReasonCode" data-v="${esc(String(rc))}" onclick="quickFilter(this.dataset.f,this.dataset.v)">${esc(String(rc))}</span></td>
-      <td class="text-secondary" title="${esc(info.action)}">${esc(descStr)}</td>
-    </tr>`;
-  }).join('');
+    const resRaw   = String(r.Result||'');
+    const resSafe  = resRaw.replace(/[^A-Za-z0-9_-]/g,'');
+    const resBtn   = dom('button',{type:'button',className:`badge${resSafe?' badge-'+resSafe:''}`,dataset:{f:'fResult',v:resRaw}},[
+      dom('span',{'aria-hidden':'true',text:icon}),
+      resRaw ? ' ' + resRaw : ''
+    ]);
+    const descChildren = [descStr];
+    if(info.action) descChildren.push(' ',dom('span',{className:'text-caption',text:`(${info.action})`}));
+    return dom('tr',null,[
+      dom('th',{scope:'row',className:'mono',style:{fontSize:'var(--text-caption)',whiteSpace:'nowrap'},text:zamanStr}),
+      dom('td',{style:{fontWeight:'var(--weight-semibold)'}},makeFilterBtn('fUser',r.Username)),
+      dom('td',null,makeFilterBtn('fRealm',r.Realm)),
+      dom('td',{className:'mono',style:{fontSize:'var(--text-caption)'}},makeFilterBtn('fIP',r.ClientIP)),
+      dom('td',null,makeFilterBtn('fNAS',r.NASIdentifier)),
+      dom('td',{className:'mono',style:{fontSize:'var(--text-caption)'}},makeFilterBtn('fMAC',r.CallingStationID)),
+      dom('td',null,resBtn),
+      dom('td',null,dom('button',{type:'button',className:`reason-pill ${cls}`,dataset:{f:'fReasonCode',v:rc},text:rc})),
+      dom('td',{className:'text-secondary'},descChildren)
+    ]);
+  }));
 }
 
 function formatZaman(zaman){
@@ -1288,12 +1360,13 @@ function renderPagination(){
   const el = document.getElementById('pagination');
   if(!el) return;
   if(pages<=1){
-    el.innerHTML=_tableTotal>0?`<span class="text-caption mono">Toplam ${fmt(_tableTotal)} kayıt</span>`:'';
+    if(_tableTotal>0) el.replaceChildren(dom('span',{className:'text-caption mono',text:`Toplam ${fmt(_tableTotal)} kayıt`}));
+    else el.replaceChildren();
     return;
   }
   const cur=_tablePage;
-  const btns=[];
-  btns.push(`<button type="button" ${cur<=1?'disabled':''} onclick="goPage(${cur-1})">‹ Önceki</button>`);
+  const nodes=[];
+  nodes.push(dom('button',{type:'button',disabled:cur<=1,dataset:{page:String(cur-1)},text:'‹ Önceki'}));
 
   const pageNums=[1];
   if(cur>3) pageNums.push('…');
@@ -1302,23 +1375,30 @@ function renderPagination(){
   if(pages>1) pageNums.push(pages);
 
   pageNums.forEach(p=>{
-    if(p==='…') btns.push(`<button type="button" disabled style="opacity:0.5;border:none;">…</button>`);
-    else btns.push(`<button type="button" class="${p===cur?'active':''}" onclick="goPage(${p})">${p}</button>`);
+    if(p==='…') nodes.push(dom('button',{type:'button',disabled:true,style:{opacity:'0.5',border:'none'},text:'…'}));
+    else nodes.push(dom('button',{type:'button',className:p===cur?'active':'',dataset:{page:String(p)},text:String(p)}));
   });
-  btns.push(`<button type="button" ${cur>=pages?'disabled':''} onclick="goPage(${cur+1})">Sonraki ›</button>`);
-  btns.push(`<span class="text-caption mono" style="margin-inline-start:var(--space-12);">Sayfa ${cur} / ${pages} (${fmt(_tableTotal)} kayıt)</span>`);
-  el.innerHTML=btns.join('');
+  nodes.push(dom('button',{type:'button',disabled:cur>=pages,dataset:{page:String(cur+1)},text:'Sonraki ›'}));
+  nodes.push(dom('span',{className:'text-caption mono',style:{marginInlineStart:'var(--space-12)'},text:`Sayfa ${cur} / ${pages} (${fmt(_tableTotal)} kayıt)`}));
+  el.replaceChildren(...nodes);
 }
 
-function goPage(p){loadTable(p);window.scrollTo({top:0,behavior:'smooth'});}
+const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+function scrollPageTop(){
+  window.scrollTo({top:0,behavior:reducedMotionQuery.matches?'auto':'smooth'});
+}
+
+function goPage(p){loadTable(p);scrollPageTop();}
 
 function sortBy(col){
   if(sortCol===col) sortDir*=-1; else{sortCol=col;sortDir=-1;}
-  document.querySelectorAll('thead th').forEach(th=>th.classList.remove('sorted-active'));
+  document.querySelectorAll('.log-data-table thead th').forEach(th=>th.removeAttribute('aria-sort'));
   const th=document.getElementById('th-'+col);
   if(th){
-    th.classList.add('sorted-active');
-    th.textContent=th.textContent.replace(/[▲▼↕]/g,'').trim()+(sortDir===1?' ▲':' ▼');
+    const dirLabel = sortDir===1 ? 'ascending' : 'descending';
+    th.setAttribute('aria-sort', dirLabel);
+    const st = document.getElementById('tableStatus');
+    if (st) st.textContent = `${th.textContent.trim()} sütununa göre ${sortDir===1?'artan':'azalan'} sıralandı.`;
   }
   loadTable(1);
 }
@@ -1330,15 +1410,54 @@ function clearFilters(){
   loadTable(1);
 }
 
+const TAB_TITLES = {
+  overview: 'Genel Bakış | RADIUS NPS — Log İzleme Paneli',
+  logs: 'Log Kayıtları | RADIUS NPS — Log İzleme Paneli',
+  analysis: 'Analiz & Bulgular | RADIUS NPS — Log İzleme Paneli',
+  reference: 'NPS Referans | RADIUS NPS — Log İzleme Paneli'
+};
+
 function switchTab(name){
-  document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.getAttribute('data-tab')===name));
-  document.querySelectorAll('.tab-content').forEach(c=>c.classList.toggle('active',c.id==='tab-'+name));
-  window.scrollTo({top:0,behavior:'smooth'});
+  document.querySelectorAll('[role="tab"][data-tab]').forEach(b=>{
+    const isSel = b.getAttribute('data-tab')===name;
+    b.classList.toggle('active', isSel);
+    b.setAttribute('aria-selected', String(isSel));
+    b.tabIndex = isSel ? 0 : -1;
+  });
+  document.querySelectorAll('[role="tabpanel"].tab-content').forEach(c=>{
+    const isSel = c.id==='tab-'+name;
+    c.classList.toggle('active', isSel);
+    c.hidden = !isSel;
+  });
+  if (TAB_TITLES[name]) document.title = TAB_TITLES[name];
+  scrollPageTop();
   if(name==='overview'&&_dashData) setTimeout(()=>{renderTrend(_dashData.trend||[]);renderHourly(_dashData.byHour||[]);},60);
   if(name==='analysis'&&_dashData) setTimeout(()=>{renderRing({SUCCESS:_dashData.summary?.find(x=>x.Result==='SUCCESS')?.Cnt||0,FAILURE:_dashData.summary?.find(x=>x.Result==='FAILURE')?.Cnt||0},(_dashData.summary||[]).reduce((a,b)=>a+(+b.Cnt),0));renderCompare(_dashData.trend||[]);},60);
 }
 
+const tabListEl = document.querySelector('[role="tablist"]');
+if (tabListEl) {
+  tabListEl.addEventListener('keydown', (e) => {
+    const tabs = [...tabListEl.querySelectorAll('[role="tab"]')];
+    const idx = tabs.indexOf(document.activeElement);
+    if (idx === -1) return;
+    let nextIdx = -1;
+    if (e.key === 'ArrowRight') nextIdx = (idx + 1) % tabs.length;
+    else if (e.key === 'ArrowLeft') nextIdx = (idx - 1 + tabs.length) % tabs.length;
+    else if (e.key === 'Home') nextIdx = 0;
+    else if (e.key === 'End') nextIdx = tabs.length - 1;
+    if (nextIdx !== -1) {
+      e.preventDefault();
+      const targetTab = tabs[nextIdx];
+      targetTab.focus();
+      switchTab(targetTab.getAttribute('data-tab'));
+    }
+  });
+}
+
 async function exportCSV(){
+  const errEl = document.getElementById('exportError');
+  if(errEl){ errEl.hidden = true; errEl.textContent = ''; }
   try {
     const params = new URLSearchParams(getFilterParams(1));
     params.set('limit', _capabilities.maxExportRows || 10000);
@@ -1350,7 +1469,9 @@ async function exportCSV(){
     a.download='radius_logs_'+new Date().toISOString().slice(0,10)+'.csv';
     a.click();
     setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
-  } catch(e) { alert('CSV indirilemedi: '+e.message); }
+  } catch(e) {
+    if(errEl){ errEl.textContent = 'CSV indirilemedi: ' + (e.message || String(e)); errEl.hidden = false; }
+  }
 }
 
 function fmt(n){ return Number(n).toLocaleString('tr-TR'); }
@@ -1419,13 +1540,82 @@ window.addEventListener('storage', (e) => {
 });
 
 updateThemeButtonLabel();
+
+const daysSelEl = document.getElementById('daysSelect');
+if (daysSelEl) daysSelEl.addEventListener('change', (e) => changeDays(e.target.value));
+
+const themeBtnEl = document.getElementById('themeToggle');
+if (themeBtnEl) themeBtnEl.addEventListener('click', toggleTheme);
+
+const refreshBtnEl = document.getElementById('refreshBtn');
+if (refreshBtnEl) refreshBtnEl.addEventListener('click', loadData);
+
+const clearBtnEl = document.getElementById('clearBtn');
+if (clearBtnEl) clearBtnEl.addEventListener('click', clearFilters);
+
+const exportCsvBtnEl = document.getElementById('exportCsvBtn');
+if (exportCsvBtnEl) exportCsvBtnEl.addEventListener('click', exportCSV);
+
+if (tabListEl) {
+  tabListEl.addEventListener('click', (e) => {
+    const btn = e.target.closest('[role="tab"][data-tab]');
+    if (btn) switchTab(btn.dataset.tab);
+  });
+}
+
+const logHeadEl = document.querySelector('.log-data-table thead');
+if (logHeadEl) {
+  logHeadEl.addEventListener('click', (e) => {
+    const btn = e.target.closest('.th-sort-btn[data-sort]');
+    if (btn) sortBy(btn.dataset.sort);
+  });
+}
+
+const logBodyEl = document.getElementById('logTable');
+if (logBodyEl) {
+  logBodyEl.addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-f][data-v]');
+    if (btn) quickFilter(btn.dataset.f, btn.dataset.v);
+  });
+}
+
+const paginationEl = document.getElementById('pagination');
+if (paginationEl) {
+  paginationEl.addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-page]');
+    if (btn && !btn.disabled) goPage(Number(btn.dataset.page));
+  });
+}
+
+const workspaceEl = document.getElementById('main-content');
+if (workspaceEl) {
+  workspaceEl.addEventListener('click', (e) => {
+    const barBtn = e.target.closest('.bar-row--interactive[data-bar-id][data-bar-idx]');
+    if (barBtn) {
+      handleBarClick(barBtn.dataset.barId, Number(barBtn.dataset.barIdx));
+      return;
+    }
+    const drillBtn = e.target.closest('[data-drill-result], [data-drill-rc]');
+    if (drillBtn) {
+      const filters = {};
+      if (drillBtn.hasAttribute('data-drill-result')) filters.result = drillBtn.getAttribute('data-drill-result');
+      if (drillBtn.hasAttribute('data-drill-rc')) filters.rc = drillBtn.getAttribute('data-drill-rc');
+      drillDown(filters);
+    }
+  });
+}
+
 window.addEventListener('load', loadData);
+let _resizeRaf = 0;
 window.addEventListener('resize', () => {
-  if (_dashData) {
+  if (!_dashData || _resizeRaf) return;
+  _resizeRaf = requestAnimationFrame(() => {
+    _resizeRaf = 0;
+    if (!_dashData) return;
     renderTrend(_dashData.trend || []);
     renderHourly(_dashData.byHour || []);
     renderCompare(_dashData.trend || []);
-  }
+  });
 });
 </script>
 </body>

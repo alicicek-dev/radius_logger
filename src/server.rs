@@ -11,6 +11,7 @@ use axum::{
 use chrono::{Duration, Local};
 use rusqlite::{params_from_iter, types::Value as SqlValue};
 use serde::Serialize;
+use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -359,6 +360,23 @@ fn build_response(
     *resp.status_mut() = status;
     let headers = resp.headers_mut();
     headers.insert(header::CONTENT_TYPE, HeaderValue::from_static(content_type));
+    headers.insert(
+        header::X_CONTENT_TYPE_OPTIONS,
+        HeaderValue::from_static("nosniff"),
+    );
+    headers.insert(header::X_FRAME_OPTIONS, HeaderValue::from_static("DENY"));
+    headers.insert(
+        header::REFERRER_POLICY,
+        HeaderValue::from_static("strict-origin-when-cross-origin"),
+    );
+    headers.insert(
+        header::HeaderName::from_static("cross-origin-resource-policy"),
+        HeaderValue::from_static("same-origin"),
+    );
+    headers.insert(
+        header::HeaderName::from_static("permissions-policy"),
+        HeaderValue::from_static("camera=(), geolocation=(), microphone=()"),
+    );
     if let Some(cc) = cache_control {
         headers.insert(header::CACHE_CONTROL, HeaderValue::from_static(cc));
     }
@@ -396,6 +414,59 @@ fn resolve_asset_path(data_dir: &str, filename: &str) -> Option<PathBuf> {
     None
 }
 
+fn base64_encode(input: &[u8]) -> String {
+    const TABLE: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut out = String::with_capacity(input.len().div_ceil(3) * 4);
+    for chunk in input.chunks(3) {
+        let b0 = chunk[0] as u32;
+        let b1 = if chunk.len() > 1 { chunk[1] as u32 } else { 0 };
+        let b2 = if chunk.len() > 2 { chunk[2] as u32 } else { 0 };
+        let n = (b0 << 16) | (b1 << 8) | b2;
+        out.push(TABLE[((n >> 18) & 0x3f) as usize] as char);
+        out.push(TABLE[((n >> 12) & 0x3f) as usize] as char);
+        out.push(if chunk.len() > 1 {
+            TABLE[((n >> 6) & 0x3f) as usize] as char
+        } else {
+            '='
+        });
+        out.push(if chunk.len() > 2 {
+            TABLE[(n & 0x3f) as usize] as char
+        } else {
+            '='
+        });
+    }
+    out
+}
+
+fn build_html_csp(html_bytes: &[u8]) -> String {
+    let html = String::from_utf8_lossy(html_bytes);
+    let mut hashes = Vec::new();
+    let mut rest = html.as_ref();
+    while let Some(open_idx) = rest.find("<script") {
+        let after_tag = &rest[open_idx..];
+        let Some(gt_rel) = after_tag.find('>') else {
+            break;
+        };
+        let content_start = &after_tag[gt_rel + 1..];
+        let Some(close_rel) = content_start.find("</script>") else {
+            break;
+        };
+        let script_body = &content_start[..close_rel];
+        let digest = Sha256::digest(script_body.as_bytes());
+        hashes.push(format!("'sha256-{}'", base64_encode(&digest)));
+        rest = &content_start[close_rel + "</script>".len()..];
+    }
+    let script_src = if hashes.is_empty() {
+        "'self'".to_string()
+    } else {
+        format!("{} 'strict-dynamic' 'report-sample'", hashes.join(" "))
+    };
+    format!(
+        "default-src 'self'; script-src {}; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'; require-trusted-types-for 'script'",
+        script_src
+    )
+}
+
 async fn handle_index(State(state): State<Arc<AppState>>, headers: HeaderMap) -> impl IntoResponse {
     let bytes = if let Some(path) =
         resolve_asset_path(&state.config.paths.data_dir, "radius_dashboard.html")
@@ -404,14 +475,20 @@ async fn handle_index(State(state): State<Arc<AppState>>, headers: HeaderMap) ->
     } else {
         EMBEDDED_HTML.as_bytes().to_vec()
     };
-    build_response(
+    let csp = build_html_csp(&bytes);
+    let mut resp = build_response(
         &state,
         &headers,
         StatusCode::OK,
         "text/html; charset=utf-8",
         None,
         bytes,
-    )
+    );
+    if let Ok(hv) = HeaderValue::from_str(&csp) {
+        resp.headers_mut()
+            .insert(header::CONTENT_SECURITY_POLICY, hv);
+    }
+    resp
 }
 
 async fn handle_css(State(state): State<Arc<AppState>>, headers: HeaderMap) -> impl IntoResponse {
@@ -907,6 +984,28 @@ mod tests {
         let index_res = http_get(addr, "/", None).await;
         assert!(index_res.starts_with("HTTP/1.1 200 OK"));
         assert!(index_res.contains("RADIUS NPS"));
+        let index_lower = index_res.to_ascii_lowercase();
+        assert!(index_lower.contains("x-content-type-options: nosniff"));
+        assert!(index_lower.contains("x-frame-options: deny"));
+        assert!(index_lower.contains("referrer-policy: strict-origin-when-cross-origin"));
+        assert!(index_lower.contains("cross-origin-resource-policy: same-origin"));
+        assert!(index_lower.contains("content-security-policy:"));
+        assert!(index_lower.contains("frame-ancestors 'none'"));
+        assert!(index_lower.contains("require-trusted-types-for 'script'"));
+        let csp_line = index_lower
+            .lines()
+            .find(|l| l.starts_with("content-security-policy:"))
+            .unwrap();
+        let script_src_part = csp_line
+            .split("script-src ")
+            .nth(1)
+            .unwrap()
+            .split(';')
+            .next()
+            .unwrap();
+        assert!(script_src_part.contains("'sha256-"));
+        assert!(script_src_part.contains("'strict-dynamic'"));
+        assert!(!script_src_part.contains("'unsafe-inline'"));
 
         let charts_ok = http_get(addr, "/api/charts?days=365", Some("http://127.0.0.1:3000")).await;
         assert!(charts_ok.starts_with("HTTP/1.1 200 OK"));
